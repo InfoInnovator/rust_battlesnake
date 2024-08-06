@@ -45,7 +45,7 @@ pub fn end(_game: &Game, _turn: &i32, _board: &Board, _you: &Battlesnake) {
 // move is called on every turn and returns your next move
 // Valid moves are "up", "down", "left", or "right"
 // See https://docs.battlesnake.com/api/example-move for available data
-pub fn get_move(_game: &Game, turn: &i32, _board: &Board, you: &Battlesnake) -> Value {
+pub fn get_move(_game: &Game, turn: &i32, board: &Board, you: &Battlesnake) -> Value {
     
     let mut is_move_safe: HashMap<_, _> = vec![
         ("up", true),
@@ -73,9 +73,26 @@ pub fn get_move(_game: &Game, turn: &i32, _board: &Board, you: &Battlesnake) -> 
         is_move_safe.insert("up", false);
     }
 
-    // TODO: Step 1 - Prevent your Battlesnake from moving out of bounds
-    // let board_width = &board.width;
-    // let board_height = &board.height;
+    // Step 1 - Prevent your Battlesnake from moving out of bounds
+    let board_width = &board.width;
+    let board_height = &board.height;
+
+    if my_head.x == board_width - 1 {
+        is_move_safe.insert("right", false);
+        info!("on right bound");
+    } 
+    if my_head.x == 0 {
+        is_move_safe.insert("left", false);
+        info!("on left bound");
+    } 
+    if my_head.y == 0 {
+        is_move_safe.insert("down", false);
+        info!("on top bound");
+    } 
+    if my_head.y == (*board_height as i32) - 1 {
+        is_move_safe.insert("up", false);
+        info!("on bottom bound");
+    }
 
     // TODO: Step 2 - Prevent your Battlesnake from colliding with itself
     // let my_body = &you.body;
