@@ -13,7 +13,7 @@
 use log::info;
 use rand::seq::SliceRandom;
 use serde_json::{json, Value};
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use crate::{Battlesnake, Board, Game};
 
@@ -94,8 +94,26 @@ pub fn get_move(_game: &Game, turn: &i32, board: &Board, you: &Battlesnake) -> V
         info!("on top bound");
     }
 
-    // TODO: Step 2 - Prevent your Battlesnake from colliding with itself
-    // let my_body = &you.body;
+    // Step 2 - Prevent your Battlesnake from colliding with itself
+    let my_body = &you.body;
+    for body_part in my_body.iter().skip(1) {
+        if my_head.y - 1 == body_part.y && my_head.x == body_part.x {
+            is_move_safe.insert("down", false);
+            info!("body on bottom");
+        }
+        if my_head.y + 1 == body_part.y && my_head.x == body_part.x {
+            is_move_safe.insert("up", false);
+            info!("body on top");
+        }
+        if my_head.x - 1 == body_part.x && my_head.y == body_part.y {
+            is_move_safe.insert("left", false);
+            info!("body on left");
+        }
+        if my_head.x + 1 == body_part.x && my_head.y == body_part.y {
+            is_move_safe.insert("right", false);
+            info!("body on right");
+        }
+    }
 
     // TODO: Step 3 - Prevent your Battlesnake from colliding with other Battlesnakes
     // let opponents = &board.snakes;
