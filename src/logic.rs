@@ -87,11 +87,11 @@ pub fn get_move(_game: &Game, turn: &i32, board: &Board, you: &Battlesnake) -> V
     } 
     if my_head.y == 0 {
         is_move_safe.insert("down", false);
-        info!("on top bound");
+        info!("on bottom bound");
     } 
     if my_head.y == (*board_height as i32) - 1 {
         is_move_safe.insert("up", false);
-        info!("on bottom bound");
+        info!("on top bound");
     }
 
     // TODO: Step 2 - Prevent your Battlesnake from colliding with itself
