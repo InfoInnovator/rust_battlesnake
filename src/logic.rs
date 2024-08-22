@@ -11,11 +11,11 @@
 // For more info see docs.battlesnake.com
 
 use log::info;
-use rand::seq::SliceRandom;
 use serde_json::{json, Value};
-use std::{collections::HashMap};
 
-use crate::{Battlesnake, Board, Game};
+use crate::{Battlesnake, Board, Game, Move};
+
+use pathfinding::prelude::astar;
 
 // info is called when you create your Battlesnake on play.battlesnake.com
 // and controls your Battlesnake's appearance
@@ -42,95 +42,54 @@ pub fn end(_game: &Game, _turn: &i32, _board: &Board, _you: &Battlesnake) {
     info!("GAME OVER");
 }
 
-// move is called on every turn and returns your next move
-// Valid moves are "up", "down", "left", or "right"
-// See https://docs.battlesnake.com/api/example-move for available data
-pub fn get_move(_game: &Game, turn: &i32, board: &Board, you: &Battlesnake) -> Value {
+pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> Move {
+    // calculate from 4 areas which are least crowded
+    // let mut crowd: HashMap<i32, i32> = HashMap::from([
+    //     (0, 0),
+    //     (1, 0),
+    //     (2, 0),
+    //     (3, 0),
+    // ]); 
     
-    let mut is_move_safe: HashMap<_, _> = vec![
-        ("up", true),
-        ("down", true),
-        ("left", true),
-        ("right", true),
-    ]
-    .into_iter()
-    .collect();
+    // // map area to score
+    // you.body.iter().for_each(|body_part| {
+    //     if body_part.x < board.width / 2 { // left field
+    //         if body_part.y > (board.height / 2) as i32 { // top
+    //             crowd.entry(0).and_modify(|e| *e += 1);
+    //         } else { // bottom
+    //             crowd.entry(2).and_modify(|e| *e += 1);
+    //         }
+    //     } else { // right field
+    //         if body_part.y > (board.height / 2) as i32 { // top
+    //             crowd.entry(1).and_modify(|e| *e += 1);
+    //         } else { // bottom
+    //             crowd.entry(3).and_modify(|e| *e += 1);
+    //         }
+    //     }
+    // });
 
-    // We've included code to prevent your Battlesnake from moving backwards
-    let my_head = &you.body[0]; // Coordinates of your head
-    let my_neck = &you.body[1]; // Coordinates of your "neck"
-    
-    if my_neck.x < my_head.x { // Neck is left of head, don't move left
-        is_move_safe.insert("left", false);
-
-    } else if my_neck.x > my_head.x { // Neck is right of head, don't move right
-        is_move_safe.insert("right", false);
-
-    } else if my_neck.y < my_head.y { // Neck is below head, don't move down
-        is_move_safe.insert("down", false);
-    
-    } else if my_neck.y > my_head.y { // Neck is above head, don't move up
-        is_move_safe.insert("up", false);
-    }
-
-    // Step 1 - Prevent your Battlesnake from moving out of bounds
-    let board_width = &board.width;
-    let board_height = &board.height;
-
-    if my_head.x == board_width - 1 {
-        is_move_safe.insert("right", false);
-        info!("on right bound");
-    } 
-    if my_head.x == 0 {
-        is_move_safe.insert("left", false);
-        info!("on left bound");
-    } 
-    if my_head.y == 0 {
-        is_move_safe.insert("down", false);
-        info!("on bottom bound");
-    } 
-    if my_head.y == (*board_height as i32) - 1 {
-        is_move_safe.insert("up", false);
-        info!("on top bound");
-    }
-
-    // Step 2 - Prevent your Battlesnake from colliding with itself
-    let my_body = &you.body;
-    for body_part in my_body.iter().skip(1) {
-        if my_head.y - 1 == body_part.y && my_head.x == body_part.x {
-            is_move_safe.insert("down", false);
-            info!("body on bottom");
-        }
-        if my_head.y + 1 == body_part.y && my_head.x == body_part.x {
-            is_move_safe.insert("up", false);
-            info!("body on top");
-        }
-        if my_head.x - 1 == body_part.x && my_head.y == body_part.y {
-            is_move_safe.insert("left", false);
-            info!("body on left");
-        }
-        if my_head.x + 1 == body_part.x && my_head.y == body_part.y {
-            is_move_safe.insert("right", false);
-            info!("body on right");
+    // calc closest apple
+    let mut goal = &board.food[0];
+    for food_cand in &board.food {
+        if &you.body[0].distance(food_cand) < &you.body[0].distance(goal) {
+            goal = food_cand;
         }
     }
-
-    // TODO: Step 3 - Prevent your Battlesnake from colliding with other Battlesnakes
-    // let opponents = &board.snakes;
-
-    // Are there any safe moves left?
-    let safe_moves = is_move_safe
-        .into_iter()
-        .filter(|&(_, v)| v)
-        .map(|(k, _)| k)
-        .collect::<Vec<_>>();
     
-    // Choose a random move from the safe ones
-    let chosen = safe_moves.choose(&mut rand::thread_rng()).unwrap();
+    // calculate path to goal
+    let path = astar(
+        &you.body[0],
+        |coord| coord.successors(&you.body, (board.width, board.height)),
+        |coord| coord.distance(&goal),
+        |coord| *coord == *goal,
+    ).unwrap();
 
-    // TODO: Step 4 - Move towards food instead of random, to regain health and survive longer
-    // let food = &board.food;
+    // local planner
+    let next_step = &path.0[1];
+    if you.body[0].check_right(next_step) { return Move::Right }
+    if you.body[0].check_down(next_step) { return Move::Down }
+    if you.body[0].check_left(next_step) { return Move::Left }
+    if you.body[0].check_up(next_step) { return Move::Up }
 
-    info!("MOVE {}: {}", turn, chosen);
-    return json!({ "move": chosen });
+    return Move::Down;
 }

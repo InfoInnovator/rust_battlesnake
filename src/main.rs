@@ -6,9 +6,12 @@ use rocket::fairing::AdHoc;
 use rocket::http::Status;
 use rocket::serde::{json::Json, Deserialize};
 use serde::Serialize;
-use serde_json::{Value};
+use serde_json::{json, Value};
+use core::fmt;
 use std::collections::HashMap;
-use std::env;
+use std::{env, vec};
+
+use std::hash::Hash;
 
 mod logic;
 
@@ -43,10 +46,82 @@ pub struct Battlesnake {
     shout: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Eq, Hash, Clone)]
 pub struct Coord {
     x: i32,
     y: i32,
+}
+
+#[derive(serde::Serialize)]
+pub enum Move {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Move::Up => write!(f, "up"),
+            Move::Right => write!(f, "right"),
+            Move::Down => write!(f, "down"),
+            Move::Left => write!(f, "left"),
+        }
+    }
+}
+
+impl PartialEq for Coord {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
+
+impl Coord {
+    fn distance(&self, other: &Coord) -> u32 {
+        let diff_x = (self.x - other.x) as f32;
+        let diff_y = (self.y - other.y) as f32;
+        (f32::powi(f32::abs(diff_x), 2) + f32::powi(f32::abs(diff_y), 2).ceil()) as u32
+    }
+
+    fn successors(&self, other_body: &Vec<Coord>, field_dim: (i32, u32)) -> Vec<(Coord, u32)> {
+        let mut start = vec![
+            Coord{x: self.x+1, y: self.y},
+            Coord{x: self.x, y: self.y-1},
+            Coord{x: self.x-1, y: self.y},
+            Coord{x: self.x, y: self.y+1},
+        ];
+
+        // obstacle: body
+        for body_part in other_body {
+            start.retain(|val| body_part != val);
+        }
+
+        // obstacle: boundary
+        start.retain(|val| val.x >= 0 && val.y >= 0 && val.x <= field_dim.0 && val.y <= (field_dim.1) as i32);
+
+        start.into_iter().map(|coord| (coord, 1)).collect()
+    }
+
+    fn check_left(&self, other: &Coord) -> bool {
+        if self.x - 1 == other.x { return true }
+        false
+    }
+
+    fn check_right(&self, other: &Coord) -> bool {
+        if self.x + 1 == other.x { return true }
+        false
+    }
+
+    fn check_up(&self, other: &Coord) -> bool {
+        if self.y + 1 == other.y { return true }
+        false
+    }
+
+    fn check_down(&self, other: &Coord) -> bool {
+        if self.y - 1 == other.y { return true }
+        false
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -83,7 +158,8 @@ fn handle_move(move_req: Json<GameState>) -> Json<Value> {
         &move_req.you,
     );
 
-    Json(response)
+    info!("MOVE {}: {}", &move_req.turn, response);
+    Json(json!({"move": response.to_string()}))
 }
 
 #[post("/end", format = "json", data = "<end_req>")]
