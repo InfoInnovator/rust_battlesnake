@@ -1,30 +1,18 @@
-// Welcome to
-// __________         __    __  .__                               __
-// \______   \_____ _/  |__/  |_|  |   ____   ______ ____ _____  |  | __ ____
-//  |    |  _/\__  \\   __\   __\  | _/ __ \ /  ___//    \\__  \ |  |/ // __ \
-//  |    |   \ / __ \|  |  |  | |  |_\  ___/ \___ \|   |  \/ __ \|    <\  ___/
-//  |________/(______/__|  |__| |____/\_____>______>___|__(______/__|__\\_____>
-//
-// This file can be a nice home for your Battlesnake logic and helper functions.
-//
-// To get you started we've included code to prevent your Battlesnake from moving backwards.
-// For more info see docs.battlesnake.com
+use std::{collections::HashMap};
 
 use log::info;
 use serde_json::{json, Value};
 
-use crate::{Battlesnake, Board, Game, Move};
+use crate::{Battlesnake, Board, Coord, Game, Move};
 
 use pathfinding::prelude::astar;
 
 /*
 TODO:
 - [ ] handle path none value
+- [ ] hand head-to-head collisions
 */
 
-// info is called when you create your Battlesnake on play.battlesnake.com
-// and controls your Battlesnake's appearance
-// TIP: If you open your Battlesnake URL in a browser you should see this data
 pub fn info() -> Value {
     info!("INFO");
 
@@ -37,41 +25,65 @@ pub fn info() -> Value {
     });
 }
 
-// start is called when your Battlesnake begins a game
 pub fn start(_game: &Game, _turn: &i32, _board: &Board, _you: &Battlesnake) {
     info!("GAME START");
 }
 
-// end is called when your Battlesnake finishes a game
 pub fn end(_game: &Game, _turn: &i32, _board: &Board, _you: &Battlesnake) {
     info!("GAME OVER");
 }
 
 pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> Move {
     // calculate from 4 areas which are least crowded
-    // let mut crowd: HashMap<i32, i32> = HashMap::from([
-    //     (0, 0),
-    //     (1, 0),
-    //     (2, 0),
-    //     (3, 0),
-    // ]); 
+    let mut crowd: HashMap<&str, i32> = HashMap::from([
+        ("right-top", 0), // right top
+        ("right-bottom", 0), // right bottom
+        ("left-top", 0), // left side top
+        ("left-bottom", 0), // left side bottom
+    ]); 
     
-    // // map area to score
-    // you.body.iter().for_each(|body_part| {
-    //     if body_part.x < board.width / 2 { // left field
-    //         if body_part.y > (board.height / 2) as i32 { // top
-    //             crowd.entry(0).and_modify(|e| *e += 1);
-    //         } else { // bottom
-    //             crowd.entry(2).and_modify(|e| *e += 1);
-    //         }
-    //     } else { // right field
-    //         if body_part.y > (board.height / 2) as i32 { // top
-    //             crowd.entry(1).and_modify(|e| *e += 1);
-    //         } else { // bottom
-    //             crowd.entry(3).and_modify(|e| *e += 1);
-    //         }
-    //     }
-    // });
+    // calc number of objects/body parts in an area
+    for y in (0..board.height).rev() {
+        for x in 0..board.width {
+            let current = &Coord { x: x, y: y as i32 };
+
+            // handle: head, own body, food and other snakes
+            let mut accounting: Vec<Coord> = Vec::new();
+            accounting.push(you.head.clone());
+            accounting.append(&mut you.body.clone());
+            accounting.append(&mut board.food.clone());
+            for other_snake in &board.snakes {
+                accounting.append(&mut other_snake.body.clone());
+            }
+
+            // check 4 areas
+            if x > board.width / 2 as i32 { // right side
+                if y > (board.height / 2) as u32 { // top
+                    if accounting.contains(current) {
+                        *crowd.get_mut("right-top").unwrap() += 1;
+                    }
+                } else { // bottom
+                    if accounting.contains(current) {
+                        *crowd.get_mut("right-bottom").unwrap() += 1;
+                    }
+                }
+            } else { // left side
+                if y > (board.height / 2) as u32 { // top
+                    if accounting.contains(current) {
+                        *crowd.get_mut("left-top").unwrap() += 1;
+                    }
+                } else { // bottom
+                    if accounting.contains(current) {
+                        *crowd.get_mut("left-bottom").unwrap() += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    println!("crowd: {:?}", crowd);
+    // TODO: choose goal by using the crowd map and determine the intermediate goal
+
 
     // calc closest apple
     let mut goal = &board.food[0];
@@ -84,7 +96,7 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
     // calculate path to goal
     let path = astar(
         &you.body[0],
-        |coord| coord.successors(&you.body, (board.width, board.height)),
+        |coord| coord.successors(&you.body, &board.snakes, (board.width, board.height)),
         |coord| coord.distance(&goal),
         |coord| *coord == *goal,
     ).unwrap();
@@ -99,5 +111,6 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
     if you.body[0].check_left(next_step) { return Move::Left }
     if you.body[0].check_up(next_step) { return Move::Up }
 
+    info!("no other moves found; moving down");
     return Move::Down;
 }

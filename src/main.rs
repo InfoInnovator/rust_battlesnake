@@ -15,6 +15,11 @@ use std::hash::Hash;
 
 mod logic;
 
+/*
+TODO:
+- [ ] draw other snakes in gameboard display
+*/
+
 // API and Response Objects
 // See https://docs.battlesnake.com/api
 
@@ -123,7 +128,7 @@ impl Coord {
         (f32::powi(f32::abs(diff_x), 2) + f32::powi(f32::abs(diff_y), 2).ceil()) as u32
     }
 
-    fn successors(&self, other_body: &Vec<Coord>, field_dim: (i32, u32)) -> Vec<(Coord, u32)> {
+    fn successors(&self, my_body: &Vec<Coord>, other_snakes: &Vec<Battlesnake>, field_dim: (i32, u32)) -> Vec<(Coord, u32)> {
         let mut start = vec![
             Coord{x: self.x+1, y: self.y},
             Coord{x: self.x, y: self.y-1},
@@ -132,13 +137,20 @@ impl Coord {
         ];
 
         // obstacle: body
-        for body_part in other_body {
+        for body_part in my_body {
             start.retain(|val| body_part != val);
         }
 
         // obstacle: boundary
         start.retain(|val| val.x >= 0 && val.y >= 0 && val.x <= field_dim.0 && val.y <= (field_dim.1) as i32);
 
+        // obstacle: other snakes
+        for other_snake in other_snakes {
+            for body_part in &other_snake.body {
+                start.retain(|val| body_part != val);
+            }
+        }
+        
         start.into_iter().map(|coord| (coord, 1)).collect()
     }
 
