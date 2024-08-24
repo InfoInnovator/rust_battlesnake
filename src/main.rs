@@ -34,6 +34,45 @@ pub struct Board {
     hazards: Vec<Coord>,
 }
 
+/*
+Snake:
+    + Own
+        + Head: h
+        + Body: O
+    + Other
+        + Head: l
+        + Body: L
+Path: +
+Apple: a
+*/
+impl Board {
+    fn display_board(&self, me: &Battlesnake, path: &Vec<Coord>) {
+        for y in (0..self.height).rev() {
+            print!("|");
+
+            for x in 0..self.width {
+                let current = &Coord { x: x, y: y as i32 };
+
+                if self.food.contains(current) { // draw food
+                    print!("a");
+                } else if me.body.contains(current) && !me.head.eq(current) { // draw body
+                    print!("O");
+                } else if me.head.eq(current) { // draw head
+                    print!("h");
+                } else if path.contains(current) { // draw path
+                    print!("+");
+                } else {
+                    print!("_");
+                }
+
+                print!("|");
+            }
+
+            println!("");
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Battlesnake {
     id: String,

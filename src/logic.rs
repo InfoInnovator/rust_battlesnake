@@ -17,6 +17,11 @@ use crate::{Battlesnake, Board, Game, Move};
 
 use pathfinding::prelude::astar;
 
+/*
+TODO:
+- [ ] handle path none value
+*/
+
 // info is called when you create your Battlesnake on play.battlesnake.com
 // and controls your Battlesnake's appearance
 // TIP: If you open your Battlesnake URL in a browser you should see this data
@@ -83,6 +88,9 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
         |coord| coord.distance(&goal),
         |coord| *coord == *goal,
     ).unwrap();
+
+    // display board with calculated path
+    board.display_board(you, &path.0);
 
     // local planner
     let next_step = &path.0[1];
