@@ -34,8 +34,8 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
         ("right-bottom", 0),
         ("left-top", 0),     
         ("left-bottom", 0),
-    ]); 
-    
+    ]);
+
     // calc number of objects/body parts in an area
     for y in (0..board.height).rev() {
         for x in 0..board.width {
@@ -96,15 +96,15 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
             goal = food_cand.clone();
         }
     }
-    
+
     // calc path
     let path: (Vec<Coord>, u32);
     let mut food_index = 0;
     loop {
         let new_path = astar(
-        &you.body[0],
-        |coord| coord.successors(&you.body, &board.snakes, (board.width, board.height)),
-        |coord| coord.distance(&goal),
+            &you.body[0],
+            |coord| coord.successors(&you.body, &board.snakes, (board.width, board.height)),
+            |coord| coord.distance(&goal),
             |coord| *coord == goal,
         );
 

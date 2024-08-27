@@ -168,7 +168,7 @@ impl Coord {
                 start.retain(|val| body_part != val);
             }
         }
-        
+
         start.into_iter().map(|coord| (coord, 1)).collect()
     }
 
