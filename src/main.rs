@@ -3,12 +3,12 @@ extern crate rocket;
 
 use core::fmt;
 use log::info;
+use rand::seq::SliceRandom;
 use rocket::fairing::AdHoc;
 use rocket::http::Status;
 use rocket::serde::{json::Json, Deserialize};
 use serde::Serialize;
 use serde_json::{json, Value};
-use core::fmt;
 use std::collections::HashMap;
 use std::{env, vec};
 
