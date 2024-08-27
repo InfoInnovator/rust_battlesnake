@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
+use core::fmt;
 use log::info;
 use rocket::fairing::AdHoc;
 use rocket::http::Status;
@@ -52,21 +53,33 @@ Apple: a
 */
 impl Board {
     fn display_board(&self, me: &Battlesnake, path: &Vec<Coord>) {
+        print!("  |");
+        for x in 0..self.width {
+            print!("{}|", x);
+        }
+        println!("");
+
         for y in (0..self.height).rev() {
+            print!("{:2}", y);
             print!("|");
 
             for x in 0..self.width {
                 let current = &Coord { x: x, y: y as i32 };
 
-                if self.food.contains(current) { // draw food
+                if self.food.contains(current) {
+                    // draw food
                     print!("a");
-                } else if me.body.contains(current) && !me.head.eq(current) { // draw body
+                } else if me.body.contains(current) && !me.head.eq(current) {
+                    // draw body
                     print!("O");
-                } else if me.head.eq(current) { // draw head
+                } else if me.head.eq(current) {
+                    // draw head
                     print!("h");
-                } else if path.contains(current) { // draw path
+                } else if path.contains(current) {
+                    // draw path
                     print!("+");
                 } else {
+                    // draw empty field
                     print!("_");
                 }
 
