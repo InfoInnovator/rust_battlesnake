@@ -196,22 +196,30 @@ impl Coord {
     }
 
     fn check_left(&self, other: &Coord) -> bool {
-        if self.x - 1 == other.x { return true }
+        if self.x - 1 == other.x {
+            return true;
+        }
         false
     }
 
     fn check_right(&self, other: &Coord) -> bool {
-        if self.x + 1 == other.x { return true }
+        if self.x + 1 == other.x {
+            return true;
+        }
         false
     }
 
     fn check_up(&self, other: &Coord) -> bool {
-        if self.y + 1 == other.y { return true }
+        if self.y + 1 == other.y {
+            return true;
+        }
         false
     }
 
     fn check_down(&self, other: &Coord) -> bool {
-        if self.y - 1 == other.y { return true }
+        if self.y - 1 == other.y {
+            return true;
+        }
         false
     }
 }
