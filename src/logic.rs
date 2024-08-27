@@ -7,12 +7,6 @@ use crate::{Battlesnake, Board, Coord, Game, Move};
 
 use pathfinding::prelude::astar;
 
-/*
-TODO:
-- [ ] handle path none value
-- [ ] hand head-to-head collisions
-*/
-
 pub fn info() -> Value {
     info!("INFO");
 
