@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use log::info;
 use serde_json::{json, Value};
@@ -36,10 +36,10 @@ pub fn end(_game: &Game, _turn: &i32, _board: &Board, _you: &Battlesnake) {
 pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> Move {
     // calculate from 4 areas which are least crowded
     let mut crowd: HashMap<&str, i32> = HashMap::from([
-        ("right-top", 0), // right top
-        ("right-bottom", 0), // right bottom
-        ("left-top", 0), // left side top
-        ("left-bottom", 0), // left side bottom
+        ("right-top", 0),
+        ("right-bottom", 0),
+        ("left-top", 0),     
+        ("left-bottom", 0),
     ]); 
     
     // calc number of objects/body parts in an area
@@ -57,22 +57,28 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
             }
 
             // check 4 areas
-            if x > board.width / 2 as i32 { // right side
-                if y > (board.height / 2) as u32 { // top
+            if x > board.width / 2 as i32 {
+                // right side
+                if y > (board.height / 2) as u32 {
+                    // top
                     if accounting.contains(current) {
                         *crowd.get_mut("right-top").unwrap() += 1;
                     }
-                } else { // bottom
+                } else {
+                    // bottom
                     if accounting.contains(current) {
                         *crowd.get_mut("right-bottom").unwrap() += 1;
                     }
                 }
-            } else { // left side
-                if y > (board.height / 2) as u32 { // top
+            } else {
+                // left side
+                if y > (board.height / 2) as u32 {
+                    // top
                     if accounting.contains(current) {
                         *crowd.get_mut("left-top").unwrap() += 1;
                     }
-                } else { // bottom
+                } else {
+                    // bottom
                     if accounting.contains(current) {
                         *crowd.get_mut("left-bottom").unwrap() += 1;
                     }
@@ -81,9 +87,13 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
         }
     }
 
-    println!("crowd: {:?}", crowd);
     // TODO: choose goal by using the crowd map and determine the intermediate goal
-
+    // determine area with lowest crowd score
+    let best_next_area = crowd
+        .iter()
+        .min_by(|a, b| a.1.cmp(b.1))
+        .map(|(k, _v)| k)
+        .unwrap();
 
     // calc closest apple
     let mut goal = &board.food[0];
