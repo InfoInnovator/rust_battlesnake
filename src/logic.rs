@@ -90,20 +90,106 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
         .unwrap();
 
     // calc closest apple
-    let mut goal = &board.food[0];
+    let mut goal = board.food[0].clone();
     for food_cand in &board.food {
-        if &you.body[0].distance(food_cand) < &you.body[0].distance(goal) {
-            goal = food_cand;
+        if &you.body[0].distance(food_cand) < &you.body[0].distance(&goal) {
+            goal = food_cand.clone();
         }
     }
     
-    // calculate path to goal
-    let path = astar(
+    // calc path
+    let path: (Vec<Coord>, u32);
+    let mut food_index = 0;
+    loop {
+        let new_path = astar(
         &you.body[0],
         |coord| coord.successors(&you.body, &board.snakes, (board.width, board.height)),
         |coord| coord.distance(&goal),
-        |coord| *coord == *goal,
-    ).unwrap();
+            |coord| *coord == goal,
+        );
+
+        match new_path {
+            Some(x) => {
+                // [TODO]: dont choose random goal, choose random valid next move
+
+                // avoid head-to-head collision
+
+                let next_move = &x.0[1];
+                let mut path_safe = true;
+
+                // create vec with risky moves
+                let mut next_move_succs = next_move.successors_wo_all();
+                next_move_succs
+                    .remove(next_move_succs.iter().position(|p| p == &you.head).unwrap());
+
+                // create vec with other snakes heads
+                let other_heads: Vec<Coord> = board.snakes.iter().map(|s| s.head.clone()).collect();
+
+                // check if next move is too close to a heads snake
+                for pos in next_move_succs {
+                    if other_heads.contains(&pos) {
+                        println!("next move ({}, {}) invalid", next_move.x, next_move.y);
+
+                        if food_index < board.food.len() {
+                            goal = board.food[food_index].clone();
+                            food_index += 1;
+
+                            println!("setting food goal to ({}, {})", goal.x, goal.y);
+                        } else {
+                            // let rand_x = rand::thread_rng().gen_range(0..board.width);
+                            // let rand_y = rand::thread_rng().gen_range(0..board.height);
+
+                            // goal = Coord {
+                            //     x: rand_x,
+                            //     y: rand_y as i32,
+                            // };
+                            
+                            // println!(
+                            //     "no path found; choosing random goal: ({}, {})",
+                            //     goal.x, goal.y
+                            // );
+
+                            println!("no path found. choosing random move");
+                            return you.head.random_valid_move(&you.body[1], &board);
+                        }
+
+                        path_safe = false;
+                        break;
+                    }
+                }
+
+                if !path_safe {
+                    continue;
+                }
+
+                path = x;
+                break;
+            }
+            None => {
+                // let rand_x = rand::thread_rng().gen_range(0..board.width);
+                // let rand_y = rand::thread_rng().gen_range(0..board.height);
+                // goal = Coord {
+                //     x: rand_x,
+                //     y: rand_y as i32,
+                // };
+
+                // println!(
+                //     "no path found; choosing random goal: ({}, {})",
+                //     goal.x, goal.y
+                // );
+
+                println!("no path found. choosing random move");
+                return you.head.random_valid_move(&you.body[1], &board);
+                // continue;
+            }
+        }
+    }
+
+    // display path as coordinates
+    println!("path found:");
+    path.0
+        .iter()
+        .for_each(|coord| println!("({}, {})", coord.x, coord.y));
 
     // display board with calculated path
     board.display_board(you, &path.0);
