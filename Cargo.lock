@@ -107,6 +107,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "battlerat"
+version = "1.0.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "pathfinding",
+ "rand",
+ "rocket",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "binascii"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1169,19 +1182,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4564168c00635f88eaed410d5efa8131afa8d8699a612c80c455a0ba05c21045"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "starter-snake-rust"
-version = "1.0.0"
-dependencies = [
- "env_logger",
- "log",
- "pathfinding",
- "rand",
- "rocket",
- "serde",
- "serde_json",
 ]
 
 [[package]]
