@@ -196,10 +196,18 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
 
     // local planner
     let next_step = &path.0[1];
-    if you.body[0].check_right(next_step) { return Move::Right }
-    if you.body[0].check_down(next_step) { return Move::Down }
-    if you.body[0].check_left(next_step) { return Move::Left }
-    if you.body[0].check_up(next_step) { return Move::Up }
+    if you.body[0].check_right(next_step) {
+        return Move::Right;
+    }
+    if you.body[0].check_down(next_step) {
+        return Move::Down;
+    }
+    if you.body[0].check_left(next_step) {
+        return Move::Left;
+    }
+    if you.body[0].check_up(next_step) {
+        return Move::Up;
+    }
 
     info!("no other moves found; moving down");
     return Move::Down;
