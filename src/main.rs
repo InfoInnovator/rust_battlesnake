@@ -222,6 +222,73 @@ impl Coord {
         }
         false
     }
+
+    fn random_valid_move(&self, neck: &Coord, board: &Board) -> Move {
+        let mut valid_moves = HashMap::from([
+            (Move::Left, true),
+            (Move::Up, true),
+            (Move::Right, true),
+            (Move::Down, true),
+        ]);
+
+        // check for boundarys
+        if self.x - 1 < 0 {
+            valid_moves.insert(Move::Left, false);
+        }
+        if self.x + 1 > board.width - 1 {
+            valid_moves.insert(Move::Right, false);
+        }
+        if self.y - 1 < 0 {
+            valid_moves.insert(Move::Down, false);
+        }
+        if self.y + 1 > (board.height - 1) as i32 {
+            valid_moves.insert(Move::Up, false);
+        }
+
+        // check for own body -> only second element of body
+        if neck.x < self.x {
+            valid_moves.insert(Move::Left, false);
+        }
+        if neck.x > self.x {
+            valid_moves.insert(Move::Right, false);
+        }
+        if neck.y < self.y {
+            valid_moves.insert(Move::Down, false);
+        }
+        if neck.y > self.y {
+            valid_moves.insert(Move::Up, false);
+        }
+
+        // check for other snakes
+        for snake in &board.snakes {
+            for body_part in &snake.body {
+                if self.check_left(body_part) {
+                    valid_moves.insert(Move::Left, false);
+                }
+                if self.check_up(body_part) {
+                    valid_moves.insert(Move::Up, false);
+                }
+                if self.check_right(body_part) {
+                    valid_moves.insert(Move::Right, false);
+                }
+                if self.check_down(body_part) {
+                    valid_moves.insert(Move::Down, false);
+                }
+            }
+        }
+
+        let safe_move = valid_moves
+            .iter()
+            .filter(|(_move, value)| value == &&true)
+            .map(|(k, _v)| k)
+            .collect::<Vec<_>>();
+
+        let chosen = safe_move
+            .choose(&mut rand::thread_rng())
+            .unwrap_or_else(|| &&Move::Down);
+
+        chosen.clone().to_owned()
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
