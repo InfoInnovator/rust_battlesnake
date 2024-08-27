@@ -109,7 +109,7 @@ pub struct Coord {
     y: i32,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Hash, PartialEq, Eq, Clone)]
 pub enum Move {
     Up,
     Right,
@@ -141,13 +141,13 @@ impl Coord {
         (f32::powi(f32::abs(diff_x), 2) + f32::powi(f32::abs(diff_y), 2).ceil()) as u32
     }
 
-    fn successors(&self, my_body: &Vec<Coord>, other_snakes: &Vec<Battlesnake>, field_dim: (i32, u32)) -> Vec<(Coord, u32)> {
-        let mut start = vec![
-            Coord{x: self.x+1, y: self.y},
-            Coord{x: self.x, y: self.y-1},
-            Coord{x: self.x-1, y: self.y},
-            Coord{x: self.x, y: self.y+1},
-        ];
+    fn successors(
+        &self,
+        my_body: &Vec<Coord>,
+        other_snakes: &Vec<Battlesnake>,
+        field_dim: (i32, u32),
+    ) -> Vec<(Coord, u32)> {
+        let mut start = self.successors_wo_all();
 
         // obstacle: body
         for body_part in my_body {
@@ -155,7 +155,12 @@ impl Coord {
         }
 
         // obstacle: boundary
-        start.retain(|val| val.x >= 0 && val.y >= 0 && val.x <= field_dim.0 && val.y <= (field_dim.1) as i32);
+        start.retain(|val| {
+            val.x >= 0
+                && val.y >= 0
+                && val.x <= field_dim.0 - 1
+                && val.y <= ((field_dim.1) as i32) - 1
+        });
 
         // obstacle: other snakes
         for other_snake in other_snakes {
@@ -165,6 +170,29 @@ impl Coord {
         }
         
         start.into_iter().map(|coord| (coord, 1)).collect()
+    }
+
+    fn successors_wo_all(&self) -> Vec<Coord> {
+        let start = vec![
+            Coord {
+                x: self.x + 1,
+                y: self.y,
+            },
+            Coord {
+                x: self.x,
+                y: self.y - 1,
+            },
+            Coord {
+                x: self.x - 1,
+                y: self.y,
+            },
+            Coord {
+                x: self.x,
+                y: self.y + 1,
+            },
+        ];
+
+        start
     }
 
     fn check_left(&self, other: &Coord) -> bool {
