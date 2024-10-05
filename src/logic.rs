@@ -38,6 +38,7 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
 
     you.head.check_collisions(board, &mut is_move_safe);
 
+    // calculate floodfill for every possible direction
     let mut areas: HashMap<Move, i32> = HashMap::new();
     is_move_safe.iter().for_each(|(k, v)| {
         if *v {
@@ -53,16 +54,17 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
 
         let all_equal = areas.iter().all(|elem| elem.1 == max_area.1);
         if all_equal {
-            let mut food_map: HashMap<Move, i32> = HashMap::new();
+            // calculate distances to food and choose optimal move into this direction
+            let mut food_dist_map: HashMap<Move, i32> = HashMap::new();
             is_move_safe.iter().for_each(|(m, k)| {
                 if *k {
                     let future_pos = m.get_coord(&you.head);
-                    food_map.insert(m.clone(), future_pos.distance(&board.food[0]));
+                    food_dist_map.insert(m.clone(), future_pos.distance(&board.food[0]));
                 }
             });
 
-            if !food_map.is_empty() {
-                let best_move = food_map.iter().min_by(|a, b| a.1.cmp(b.1)).unwrap();
+            if !food_dist_map.is_empty() {
+                let best_move = food_dist_map.iter().min_by(|a, b| a.1.cmp(b.1)).unwrap();
                 return best_move.0.clone();
             }
         } else {
