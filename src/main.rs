@@ -3,23 +3,16 @@ extern crate rocket;
 
 use core::fmt;
 use log::info;
-use rand::seq::SliceRandom;
 use rocket::fairing::AdHoc;
 use rocket::http::Status;
 use rocket::serde::{json::Json, Deserialize};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::{env, vec};
 
-use std::hash::Hash;
-
 mod logic;
-
-/*
-TODO:
-- [ ] draw other snakes in gameboard display
-*/
 
 // API and Response Objects
 // See https://docs.battlesnake.com/api
@@ -33,7 +26,7 @@ pub struct Game {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Board {
-    height: u32,
+    height: i32,
     width: i32,
     food: Vec<Coord>,
     snakes: Vec<Battlesnake>,
@@ -51,45 +44,45 @@ Snake:
 Path: +
 Apple: a
 */
-impl Board {
-    fn display_board(&self, me: &Battlesnake, path: &Vec<Coord>) {
-        print!("  |");
-        for x in 0..self.width {
-            print!("{}|", x);
-        }
-        println!("");
+// impl Board {
+//     fn display_board(&self, me: &Battlesnake, path: &[Coord]) {
+//         print!("  |");
+//         for x in 0..self.width {
+//             print!("{}|", x);
+//         }
+//         println!();
 
-        for y in (0..self.height).rev() {
-            print!("{:2}", y);
-            print!("|");
+//         for y in (0..self.height).rev() {
+//             print!("{:2}", y);
+//             print!("|");
 
-            for x in 0..self.width {
-                let current = &Coord { x: x, y: y as i32 };
+//             for x in 0..self.width {
+//                 let current = &Coord { x, y };
 
-                if self.food.contains(current) {
-                    // draw food
-                    print!("a");
-                } else if me.body.contains(current) && !me.head.eq(current) {
-                    // draw body
-                    print!("O");
-                } else if me.head.eq(current) {
-                    // draw head
-                    print!("h");
-                } else if path.contains(current) {
-                    // draw path
-                    print!("+");
-                } else {
-                    // draw empty field
-                    print!("_");
-                }
+//                 if self.food.contains(current) {
+//                     // draw food
+//                     print!("a");
+//                 } else if me.body.contains(current) && !me.head.eq(current) {
+//                     // draw body
+//                     print!("O");
+//                 } else if me.head.eq(current) {
+//                     // draw head
+//                     print!("h");
+//                 } else if path.contains(current) {
+//                     // draw path
+//                     print!("+");
+//                 } else {
+//                     // draw empty field
+//                     print!("_");
+//                 }
 
-                print!("|");
-            }
+//                 print!("|");
+//             }
 
-            println!("");
-        }
-    }
-}
+//             println!();
+//         }
+//     }
+// }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Battlesnake {
@@ -103,18 +96,178 @@ pub struct Battlesnake {
     shout: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Eq, Hash, Clone)]
+#[derive(PartialEq)]
+enum FieldType {
+    Discovered,
+    Free,
+    Blocked,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Coord {
     x: i32,
     y: i32,
 }
 
-#[derive(serde::Serialize, Hash, PartialEq, Eq, Clone)]
+impl Coord {
+    fn check_out_of_bounds(&self, board: &Board, input_moves: &mut HashMap<Move, bool>) {
+        if self.x - 1 < 0 {
+            input_moves.insert(Move::Left, false);
+        }
+        if self.x + 1 > board.width - 1 {
+            input_moves.insert(Move::Right, false);
+        }
+        if self.y - 1 < 0 {
+            input_moves.insert(Move::Down, false);
+        }
+        if self.y + 1 > board.height - 1 {
+            input_moves.insert(Move::Up, false);
+        }
+    }
+
+    fn check_body_collision(&self, board: &Board, input_moves: &mut HashMap<Move, bool>) {
+        let mut bodies: Vec<&Coord> = Vec::new();
+        board.snakes.iter().for_each(|snake| {
+            snake.body.iter().for_each(|body_part| {
+                bodies.push(body_part);
+            });
+        });
+        bodies.retain(|elem| *elem != self);
+
+        input_moves.clone().iter().for_each(|(m, k)| {
+            if *k && bodies.contains(&&m.get_coord(self)) {
+                input_moves.insert(m.clone(), false);
+            }
+        });
+    }
+
+    fn check_head_to_head_collisions(&self, board: &Board, input_moves: &mut HashMap<Move, bool>) {
+        let mut snake_heads: Vec<Coord> = board
+            .snakes
+            .iter()
+            .map(|snake| snake.body[0].clone())
+            .collect();
+        snake_heads.retain(|head| head != self);
+
+        let input_moves_before = input_moves.clone();
+
+        input_moves.clone().iter().for_each(|(m, k)| {
+            if *k {
+                let snake_head_moves = [Move::Down, Move::Left, Move::Right, Move::Up];
+
+                snake_heads.iter().for_each(|snake_head| {
+                    snake_head_moves.iter().for_each(|head_move| {
+                        if m.get_coord(self) == head_move.get_coord(snake_head) {
+                            input_moves.insert(m.clone(), false);
+                        }
+                    });
+                });
+            }
+        });
+
+        if input_moves.values().all(|elem| elem == &false) {
+            input_moves_before.iter().for_each(|(m, k)| {
+                input_moves.insert(m.clone(), *k);
+            });
+        }
+    }
+
+    fn check_collisions(&self, board: &Board, input_moves: &mut HashMap<Move, bool>) {
+        self.check_out_of_bounds(board, input_moves);
+        self.check_body_collision(board, input_moves);
+        self.check_head_to_head_collisions(board, input_moves);
+    }
+
+    fn floodfill(&self, board: &Board) -> i32 {
+        let mut custom_board: HashMap<Coord, FieldType> = HashMap::new();
+
+        // add all coords
+        for y in (0..board.height).rev() {
+            for x in 0..board.width {
+                custom_board.insert(Coord { x, y }, FieldType::Free);
+            }
+        }
+
+        // add all snakes
+        for snake in &board.snakes {
+            for part in &snake.body {
+                custom_board.insert(part.clone(), FieldType::Blocked);
+            }
+        }
+
+        let mut stack: Vec<Coord> = Vec::new();
+        stack.push(self.clone());
+
+        let mut area_size = 0;
+
+        while let Some(v) = stack.pop() {
+            if custom_board.get(&v) != Some(&FieldType::Discovered)
+                && custom_board.get(&v) != Some(&FieldType::Blocked)
+            {
+                custom_board.insert(v.clone(), FieldType::Discovered);
+
+                let mut is_move_safe: HashMap<_, _> = vec![
+                    (Move::Up, true),
+                    (Move::Down, true),
+                    (Move::Left, true),
+                    (Move::Right, true),
+                ]
+                .into_iter()
+                .collect();
+
+                v.check_collisions(board, &mut is_move_safe);
+
+                for (m, k) in is_move_safe {
+                    if k {
+                        let next = m.get_coord(&v);
+                        stack.push(next);
+                    }
+                }
+
+                area_size += 1;
+            }
+        }
+
+        area_size
+    }
+
+    fn distance(&self, other: &Coord) -> i32 {
+        i32::abs(self.x - other.x) + i32::abs(self.y - other.y)
+    }
+}
+
+#[derive(serde::Serialize, Hash, PartialEq, Eq, Clone, Debug)]
 pub enum Move {
     Up,
     Right,
     Down,
     Left,
+}
+
+impl Move {
+    fn get_coord(&self, origin: &Coord) -> Coord {
+        if self == &Move::Up {
+            Coord {
+                x: origin.x,
+                y: origin.y + 1,
+            }
+        } else if self == &Move::Down {
+            Coord {
+                x: origin.x,
+                y: origin.y - 1,
+            }
+        } else if self == &Move::Left {
+            Coord {
+                x: origin.x - 1,
+                y: origin.y,
+            }
+        } else {
+            Coord {
+                x: origin.x + 1,
+                y: origin.y,
+            }
+        }
+    }
 }
 
 impl fmt::Display for Move {
@@ -125,169 +278,6 @@ impl fmt::Display for Move {
             Move::Down => write!(f, "down"),
             Move::Left => write!(f, "left"),
         }
-    }
-}
-
-impl PartialEq for Coord {
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y
-    }
-}
-
-impl Coord {
-    fn distance(&self, other: &Coord) -> u32 {
-        let diff_x = (self.x - other.x) as f32;
-        let diff_y = (self.y - other.y) as f32;
-        (f32::powi(f32::abs(diff_x), 2) + f32::powi(f32::abs(diff_y), 2).ceil()) as u32
-    }
-
-    fn successors(
-        &self,
-        my_body: &Vec<Coord>,
-        other_snakes: &Vec<Battlesnake>,
-        field_dim: (i32, u32),
-    ) -> Vec<(Coord, u32)> {
-        let mut start = self.successors_wo_all();
-
-        // obstacle: body
-        for body_part in my_body {
-            start.retain(|val| body_part != val);
-        }
-
-        // obstacle: boundary
-        start.retain(|val| {
-            val.x >= 0
-                && val.y >= 0
-                && val.x <= field_dim.0 - 1
-                && val.y <= ((field_dim.1) as i32) - 1
-        });
-
-        // obstacle: other snakes
-        for other_snake in other_snakes {
-            for body_part in &other_snake.body {
-                start.retain(|val| body_part != val);
-            }
-        }
-
-        start.into_iter().map(|coord| (coord, 1)).collect()
-    }
-
-    fn successors_wo_all(&self) -> Vec<Coord> {
-        let start = vec![
-            Coord {
-                x: self.x + 1,
-                y: self.y,
-            },
-            Coord {
-                x: self.x,
-                y: self.y - 1,
-            },
-            Coord {
-                x: self.x - 1,
-                y: self.y,
-            },
-            Coord {
-                x: self.x,
-                y: self.y + 1,
-            },
-        ];
-
-        start
-    }
-
-    fn check_left(&self, other: &Coord) -> bool {
-        if self.x - 1 == other.x {
-            return true;
-        }
-        false
-    }
-
-    fn check_right(&self, other: &Coord) -> bool {
-        if self.x + 1 == other.x {
-            return true;
-        }
-        false
-    }
-
-    fn check_up(&self, other: &Coord) -> bool {
-        if self.y + 1 == other.y {
-            return true;
-        }
-        false
-    }
-
-    fn check_down(&self, other: &Coord) -> bool {
-        if self.y - 1 == other.y {
-            return true;
-        }
-        false
-    }
-
-    fn random_valid_move(&self, neck: &Coord, board: &Board) -> Move {
-        let mut valid_moves = HashMap::from([
-            (Move::Left, true),
-            (Move::Up, true),
-            (Move::Right, true),
-            (Move::Down, true),
-        ]);
-
-        // check for boundarys
-        if self.x - 1 < 0 {
-            valid_moves.insert(Move::Left, false);
-        }
-        if self.x + 1 > board.width - 1 {
-            valid_moves.insert(Move::Right, false);
-        }
-        if self.y - 1 < 0 {
-            valid_moves.insert(Move::Down, false);
-        }
-        if self.y + 1 > (board.height - 1) as i32 {
-            valid_moves.insert(Move::Up, false);
-        }
-
-        // check for own body -> only second element of body
-        if neck.x < self.x {
-            valid_moves.insert(Move::Left, false);
-        }
-        if neck.x > self.x {
-            valid_moves.insert(Move::Right, false);
-        }
-        if neck.y < self.y {
-            valid_moves.insert(Move::Down, false);
-        }
-        if neck.y > self.y {
-            valid_moves.insert(Move::Up, false);
-        }
-
-        // check for other snakes
-        for snake in &board.snakes {
-            for body_part in &snake.body {
-                if self.check_left(body_part) {
-                    valid_moves.insert(Move::Left, false);
-                }
-                if self.check_up(body_part) {
-                    valid_moves.insert(Move::Up, false);
-                }
-                if self.check_right(body_part) {
-                    valid_moves.insert(Move::Right, false);
-                }
-                if self.check_down(body_part) {
-                    valid_moves.insert(Move::Down, false);
-                }
-            }
-        }
-
-        let safe_move = valid_moves
-            .iter()
-            .filter(|(_move, value)| value == &&true)
-            .map(|(k, _v)| k)
-            .collect::<Vec<_>>();
-
-        let chosen = safe_move
-            .choose(&mut rand::thread_rng())
-            .unwrap_or_else(|| &&Move::Down);
-
-        chosen.clone().to_owned()
     }
 }
 
@@ -341,7 +331,7 @@ fn rocket() -> _ {
     // Lots of web hosting services expect you to bind to the port specified by the `PORT`
     // environment variable. However, Rocket looks at the `ROCKET_PORT` environment variable.
     // If we find a value for `PORT`, we set `ROCKET_PORT` to that value.
-    env::set_var("ROCKET_PORT", "8002");
+    env::set_var("ROCKET_PORT", "8000");
 
     // We default to 'info' level logging. But if the `RUST_LOG` environment variable is set,
     // we keep that value instead.
