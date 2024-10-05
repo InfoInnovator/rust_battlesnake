@@ -10,6 +10,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::time::Duration;
 use std::{env, vec};
 
 mod logic;
@@ -308,15 +309,18 @@ fn handle_start(start_req: Json<GameState>) -> Status {
 
 #[post("/move", format = "json", data = "<move_req>")]
 fn handle_move(move_req: Json<GameState>) -> Json<Value> {
-    let response = logic::get_move(
+    let response: (Move, Duration) = logic::get_move(
         &move_req.game,
         &move_req.turn,
         &move_req.board,
         &move_req.you,
     );
 
-    info!("MOVE {}: {}", &move_req.turn, response);
-    Json(json!({"move": response.to_string()}))
+    info!(
+        "MOVE {}: {} took {:?}",
+        &move_req.turn, response.0, response.1
+    );
+    Json(json!({"move": response.0.to_string()}))
 }
 
 #[post("/end", format = "json", data = "<end_req>")]

@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 use log::{info, warn};
 use rand::seq::SliceRandom;
@@ -26,7 +29,9 @@ pub fn end(_game: &Game, _turn: &i32, _board: &Board, _you: &Battlesnake) {
     info!("GAME OVER");
 }
 
-pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> Move {
+pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> (Move, Duration) {
+    let start = Instant::now();
+
     let mut is_move_safe: HashMap<_, _> = vec![
         (Move::Up, true),
         (Move::Down, true),
@@ -47,13 +52,12 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
         }
     });
 
-    println!("areas: {:?}", areas);
-
     if !areas.is_empty() {
         let max_area = areas.iter().max_by(|a, b| a.1.cmp(b.1)).unwrap();
 
         let all_equal = areas.iter().all(|elem| elem.1 == max_area.1);
-        if all_equal {
+        // if direction doesnt mattter AND only if food is necessary
+        if all_equal && you.health < 60 {
             // calculate distances to food and choose optimal move into this direction
             let mut food_dist_map: HashMap<Move, i32> = HashMap::new();
             is_move_safe.iter().for_each(|(m, k)| {
@@ -65,10 +69,11 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
 
             if !food_dist_map.is_empty() {
                 let best_move = food_dist_map.iter().min_by(|a, b| a.1.cmp(b.1)).unwrap();
-                return best_move.0.clone();
+
+                return (best_move.0.clone(), start.elapsed());
             }
         } else {
-            return max_area.0.clone();
+            return (max_area.0.clone(), start.elapsed());
         }
     }
 
@@ -85,5 +90,5 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
             &Move::Down
         });
 
-    chosen.clone()
+    (chosen.clone(), start.elapsed())
 }
