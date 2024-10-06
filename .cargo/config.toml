@@ -1,0 +1,4 @@
+[alias]
+xtask = "run --package xtask --"
+snake = "run --package battlerat --"
+benchmark = "run --package testing --"
