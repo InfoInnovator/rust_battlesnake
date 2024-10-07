@@ -54,28 +54,58 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
 
     if !areas.is_empty() {
         let max_area = areas.iter().max_by(|a, b| a.1.cmp(b.1)).unwrap();
-
         let all_equal = areas.iter().all(|elem| elem.1 == max_area.1);
-        // if direction doesnt mattter AND only if food is necessary
-        if all_equal && you.health < 60 {
-            // calculate distances to food and choose optimal move into this direction
-            let mut food_dist_map: HashMap<Move, i32> = HashMap::new();
-            is_move_safe.iter().for_each(|(m, k)| {
-                if *k {
-                    let future_pos = m.get_coord(&you.head);
-                    food_dist_map.insert(m.clone(), future_pos.distance(&board.food[0]));
-                }
-            });
 
-            if !food_dist_map.is_empty() {
-                let best_move = food_dist_map.iter().min_by(|a, b| a.1.cmp(b.1)).unwrap();
-
-                return (best_move.0.clone(), start.elapsed());
-            }
-        } else {
+        // if direction doesnt mattter
+        if !all_equal {
             return (max_area.0.clone(), start.elapsed());
         }
     }
+
+    // do something with a "tree"
+    // println!("running sim");
+    // println!("safe moves before: {:?}", is_move_safe);
+    let test = is_move_safe.clone();
+    is_move_safe.clone().iter().for_each(|(m, k)| {
+        if *k {
+            let mut new_board = board.clone();
+            for i in 0..10 {
+                let prev_snake = board
+                    .snakes
+                    .iter()
+                    .find(|snake| snake.id == you.id)
+                    .unwrap();
+
+                m.simulate_step(you, &mut new_board);
+
+                let future_snake = board
+                    .snakes
+                    .iter()
+                    .find(|snake| snake.id == you.id)
+                    .unwrap();
+
+                // -------------- evaluate board at the end of the simulation --------------
+
+                // if snake hasnt changed -> bad game
+                if prev_snake.equals(future_snake) {
+                    is_move_safe.insert(m.clone(), false);
+                }
+
+                println!("game {} simulating {}", i, m);
+                new_board.print();
+                println!();
+            }
+
+            // remove move if snake lost game in sim
+            // if new_board.snakes.iter().any(|snake| snake.id == you.id) {
+            // is_move_safe.insert(m.clone(), false);
+            // println!("bad move found");
+            // }
+        }
+    });
+    // println!("safes moves after: {:?}", is_move_safe);
+    let changed = is_move_safe != test;
+    println!("{}", changed);
 
     let safe_moves = is_move_safe
         .into_iter()
