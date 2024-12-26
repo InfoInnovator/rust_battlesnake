@@ -65,6 +65,7 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
     // do something with a "tree"
     // println!("running sim");
     // println!("safe moves before: {:?}", is_move_safe);
+    /*
     let test = is_move_safe.clone();
     is_move_safe.clone().iter().for_each(|(m, k)| {
         if *k {
@@ -105,7 +106,7 @@ pub fn get_move(_game: &Game, _turn: &i32, board: &Board, you: &Battlesnake) -> 
     });
     // println!("safes moves after: {:?}", is_move_safe);
     let changed = is_move_safe != test;
-    println!("{}", changed);
+    println!("{}", changed);*/
 
     let safe_moves = is_move_safe
         .into_iter()
