@@ -1,3 +1,6 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+
 #[macro_use]
 extern crate rocket;
 
@@ -29,6 +32,7 @@ fn handle_start(_start_req: Json<GameState>) -> Status {
     Status::Ok
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[post("/move", format = "json", data = "<move_req>")]
 fn handle_move(
     move_req: Json<GameState>,

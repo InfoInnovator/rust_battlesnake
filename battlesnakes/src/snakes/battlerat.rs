@@ -1,3 +1,6 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+
 use crate::game::game_types::Coord;
 use std::collections::HashMap;
 
@@ -42,12 +45,12 @@ impl BattlesnakeFactory for BattleratFactory {
         you.head.check_collisions(board, &mut is_move_safe);
 
         let mut areas: HashMap<Move, i32> = HashMap::new();
-        is_move_safe.iter().for_each(|(k, v)| {
+        for (k, v) in &is_move_safe {
             if *v {
                 let area_size = k.get_coord(&you.head).floodfill(board);
                 areas.insert(k.clone(), area_size);
             }
-        });
+        }
 
         if !areas.is_empty() {
             let max_area = areas.iter().max_by(|a, b| a.1.cmp(b.1)).unwrap();
@@ -129,20 +132,20 @@ impl Coord {
             if *k {
                 let snake_head_moves = [Move::Down, Move::Left, Move::Right, Move::Up];
 
-                snake_heads.iter().for_each(|snake_head| {
-                    snake_head_moves.iter().for_each(|head_move| {
+                for snake_head in &snake_heads {
+                    for head_move in &snake_head_moves {
                         if m.get_coord(self) == head_move.get_coord(snake_head) {
                             input_moves.insert(m.clone(), false);
                         }
-                    });
-                });
+                    }
+                }
             }
         });
 
         if input_moves.values().all(|elem| elem == &false) {
-            input_moves_before.iter().for_each(|(m, k)| {
+            for (m, k) in &input_moves_before {
                 input_moves.insert(m.clone(), *k);
-            });
+            }
         }
     }
 
@@ -152,6 +155,7 @@ impl Coord {
         self.check_head_to_head_collisions(board, input_moves);
     }
 
+    #[must_use]
     pub fn floodfill(&self, board: &Board) -> i32 {
         let mut custom_board: HashMap<Coord, FieldType> = HashMap::new();
 
@@ -206,6 +210,7 @@ impl Coord {
     }
 }
 impl Move {
+    #[must_use]
     pub fn get_coord(&self, origin: &Coord) -> Coord {
         if self == &Move::Up {
             Coord {
