@@ -23,6 +23,64 @@ pub struct Board {
     pub hazards: Vec<Coord>,
 }
 
+impl Board {
+    pub fn print(&self) {
+        print!("  |");
+        for x in 0..self.width {
+            print!("{x:2}|");
+        }
+        println!();
+
+        for y in (0..self.height).rev() {
+            print!("{y:2}");
+            print!("|");
+
+            for x in 0..self.width {
+                let current = &Coord { x, y };
+
+                let mut contains_snake = false;
+                for snake in &self.snakes {
+                    for part in &snake.body {
+                        if part == current {
+                            if current == &snake.body[0] {
+                                // draw snake head
+                                print!("{:2}", "H");
+                            } else {
+                                // draw snake body
+                                print!("{:2}", "O");
+                            }
+                            contains_snake = true;
+                            break;
+                        }
+                    }
+                    if contains_snake {
+                        break;
+                    }
+                }
+
+                for food in &self.food {
+                    if food == current {
+                        // draw food
+                        print!("{:2}", "F");
+
+                        contains_snake = true;
+                        break;
+                    }
+                }
+
+                if !contains_snake {
+                    // draw empty field
+                    print!("{:2}", "_");
+                }
+
+                print!("|");
+            }
+
+            println!();
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Battlesnake {
     pub id: String,
