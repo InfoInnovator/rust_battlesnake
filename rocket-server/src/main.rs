@@ -46,9 +46,11 @@ fn handle_move(
     );
     let next_move = factories
         .iter()
-        .find(|snake| snake.name() == move_req.you.name)
+        .find(|snake| snake.name() == you.name)
         .unwrap()
         .handle_move(game, turn, board, you);
+
+    info!("[{}] {}: {:?}", turn, you.name, next_move);
 
     Json(json!({"move": next_move.to_string()}))
 }
