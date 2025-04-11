@@ -7,20 +7,20 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Game {
-    id: String,
-    ruleset: HashMap<String, Value>,
-    timeout: u32,
+    pub id: String,
+    pub ruleset: HashMap<String, Value>,
+    pub timeout: u32,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Board {
     pub height: i32,
     pub width: i32,
-    food: Vec<Coord>,
+    pub food: Vec<Coord>,
     pub snakes: Vec<Battlesnake>,
-    hazards: Vec<Coord>,
+    pub hazards: Vec<Coord>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -41,7 +41,7 @@ pub struct Coord {
     pub y: i32,
 }
 
-#[derive(serde::Serialize, Hash, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Hash, PartialEq, Eq, Clone, Debug)]
 pub enum Move {
     Up,
     Right,
@@ -60,7 +60,23 @@ impl fmt::Display for Move {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+impl<'de> Deserialize<'de> for Move {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.as_str() {
+            "up" | "Up" => Ok(Move::Up),
+            "right" | "Right" => Ok(Move::Right),
+            "down" | "Down" => Ok(Move::Down),
+            "left" | "Left" => Ok(Move::Left),
+            _ => Err(serde::de::Error::custom(format!("Invalid move: {s}"))),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GameState {
     pub game: Game,
     pub turn: i32,
