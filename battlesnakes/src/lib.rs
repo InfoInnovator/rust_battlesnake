@@ -1,6 +1,9 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+
 use game::game_types::{Battlesnake, Board, Game, Move};
 use serde_json::Value;
-use snakes::battlerat::BattleratFactory;
+use snakes::carlo_constrictor::CarloConstrictorFactory;
 
 pub mod game;
 pub mod snakes;
@@ -13,6 +16,10 @@ pub trait BattlesnakeFactory {
 
 pub type BoxedBattlesnakeFactory = Box<dyn BattlesnakeFactory + Send + Sync>;
 
+#[must_use]
 pub fn add_all_factories() -> Vec<BoxedBattlesnakeFactory> {
-    vec![Box::new(BattleratFactory)]
+    vec![
+        // Box::new(BattleratFactory),
+        Box::new(CarloConstrictorFactory),
+    ]
 }
