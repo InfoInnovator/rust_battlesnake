@@ -1,0 +1,14 @@
+[package]
+name = "runa"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+battlesnakes = { path = "../battlesnakes" }
+
+clap = { version = "4.5.35", features = ["derive"] }
+crossterm = "0.29.0"
+ratatui = "0.29.0"
+reqwest = { version = "0.12.15", features = ["blocking"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
