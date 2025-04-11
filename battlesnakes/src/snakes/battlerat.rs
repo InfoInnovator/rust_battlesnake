@@ -5,7 +5,7 @@ use crate::game::game_types::Coord;
 use std::collections::HashMap;
 
 use log::{info, warn};
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use serde_json::{Value, json};
 
 use crate::{
@@ -68,12 +68,10 @@ impl BattlesnakeFactory for BattleratFactory {
             .map(|(k, _)| k)
             .collect::<Vec<_>>();
 
-        let chosen = safe_moves
-            .choose(&mut rand::thread_rng())
-            .unwrap_or_else(|| {
-                warn!("NO POSSIBLE MOVES FOUND. returning DOWN as default");
-                &Move::Down
-            });
+        let chosen = safe_moves.choose(&mut rand::rng()).unwrap_or_else(|| {
+            warn!("NO POSSIBLE MOVES FOUND. returning DOWN as default");
+            &Move::Down
+        });
 
         chosen.clone()
     }
