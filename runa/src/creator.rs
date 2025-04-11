@@ -1,3 +1,6 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+
 use std::path::PathBuf;
 
 use battlesnakes::game::game_types::{Battlesnake, Board, Coord, Game, GameState, Move};
@@ -19,12 +22,12 @@ pub struct Creator {
 }
 
 pub struct Config {
-    field_size: u32,
+    field_size: i32,
     output_file: PathBuf,
 }
 
 impl Creator {
-    pub fn new(field_size: u32, output_file: PathBuf, description: String) -> Self {
+    pub fn new(field_size: i32, output_file: PathBuf, description: String) -> Self {
         let game: Game = serde_json::from_str::<Game>(
             r#"{
                 "id": "2829de0c-d62d-4738-8dce-9818bada470c",
@@ -59,8 +62,8 @@ impl Creator {
             game,
             turn: 0,
             board: Board {
-                height: field_size as i32,
-                width: field_size as i32,
+                height: field_size,
+                width: field_size,
                 food: Vec::new(),
                 snakes: vec![Battlesnake {
                     id: "empty_id".to_string(),
@@ -119,7 +122,7 @@ impl Creator {
                             }
                         }
                         KeyCode::Down => {
-                            if self.cursor.1 < self.config.field_size as i32 - 1 {
+                            if self.cursor.1 < self.config.field_size - 1 {
                                 self.cursor.1 += 1;
                             }
                         }
@@ -129,7 +132,7 @@ impl Creator {
                             }
                         }
                         KeyCode::Right => {
-                            if self.cursor.0 < self.config.field_size as i32 - 1 {
+                            if self.cursor.0 < self.config.field_size - 1 {
                                 self.cursor.0 += 1;
                             }
                         }
@@ -155,7 +158,7 @@ impl Creator {
                             self.next_valid_moves.push(Move::Left);
                         }
                         _ => {}
-                    };
+                    }
                 }
             }
         }
@@ -164,10 +167,12 @@ impl Creator {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let mut hor_constraints = vec![Constraint::Length(4); self.game_state.board.width as usize];
+        let mut hor_constraints =
+            vec![Constraint::Length(4); self.game_state.board.width.try_into().unwrap()];
         hor_constraints.push(Constraint::Percentage(100));
 
-        let ver_constraints = vec![Constraint::Length(2); self.game_state.board.height as usize];
+        let ver_constraints =
+            vec![Constraint::Length(2); self.game_state.board.height.try_into().unwrap()];
 
         let outer = Layout::default()
             .direction(ratatui::layout::Direction::Horizontal)
@@ -194,24 +199,24 @@ impl Creator {
                     block = block.on_red();
                 }
 
-                if self.cursor.0 == i as i32 && self.cursor.1 == j as i32 {
+                if self.cursor.0 == i32::try_from(i).unwrap()
+                    && self.cursor.1 == i32::try_from(j).unwrap()
+                {
                     block = block.borders(Borders::ALL);
                 }
 
                 if !self.game_state.board.snakes.is_empty()
-                    && self.game_state.board.snakes[0].head.x == i as i32
-                    && self.game_state.board.snakes[0].head.y == j as i32
+                    && self.game_state.board.snakes[0].head.x == i32::try_from(i).unwrap()
+                    && self.game_state.board.snakes[0].head.y == i32::try_from(j).unwrap()
                 {
                     block = block.title("Head");
                 }
 
-                if self
-                    .game_state
-                    .board
-                    .snakes
-                    .iter()
-                    .any(|s| s.body.iter().any(|b| b.x == i as i32 && b.y == j as i32))
-                {
+                if self.game_state.board.snakes.iter().any(|s| {
+                    s.body.iter().any(|b| {
+                        b.x == i32::try_from(i).unwrap() && b.y == i32::try_from(j).unwrap()
+                    })
+                }) {
                     block = block.title("Body");
                 }
 
@@ -221,13 +226,13 @@ impl Creator {
 
         frame.render_widget(
             Block::new().on_black(),
-            outer[self.game_state.board.width as usize],
+            outer[usize::try_from(self.game_state.board.width).unwrap()],
         );
 
         let snake_info_layout = Layout::default()
             .direction(ratatui::layout::Direction::Vertical)
             .constraints([Constraint::Fill(1)])
-            .split(outer[self.game_state.board.width as usize]);
+            .split(outer[usize::try_from(self.game_state.board.width).unwrap()]);
 
         if !self.game_state.board.snakes.is_empty() {
             // title
@@ -245,12 +250,12 @@ impl Creator {
                 .split(snake_info_layout[0].inner(Margin::new(1, 1)));
 
             for (j, body_part) in self.game_state.board.snakes[0].body.iter().enumerate() {
-                let mut body_text = format!("{:?}", body_part);
+                let mut body_text = format!("{body_part:?}");
 
                 if body_part.x == self.game_state.board.snakes[0].head.x
                     && body_part.y == self.game_state.board.snakes[0].head.y
                 {
-                    body_text = format!("{} (Head)", body_text);
+                    body_text = format!("{body_text} (Head)");
                 }
 
                 let body_block = Paragraph::new(body_text);

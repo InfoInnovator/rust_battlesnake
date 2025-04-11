@@ -1,3 +1,6 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -56,7 +59,7 @@ struct Cli {
 
     /// Size of the field (assuming square field)
     #[arg(short, default_value_t = 11)]
-    field_size: u32,
+    field_size: i32,
 
     /// Description of what the scenario is about
     #[arg(short, long)]

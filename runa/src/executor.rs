@@ -1,3 +1,6 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+
 use std::time::Duration;
 
 use battlesnakes::game::game_types::Move;
@@ -33,7 +36,11 @@ impl Executor {
                 serde_json::from_str::<ExportedGameState>(&scenario_str).unwrap();
 
             // replace "you" snake name with the snake name to be tested
-            exported_game_state.game_state.you.name = self.snake_name.clone();
+            exported_game_state
+                .game_state
+                .you
+                .name
+                .clone_from(&self.snake_name);
 
             // send request to the server
             let client = reqwest::blocking::Client::new();
@@ -59,7 +66,7 @@ impl Executor {
                         "Got move [{}] from valid moves {:?}",
                         response_move.r#move, exported_game_state.next_valid_moves
                     );
-                    println!("Response time: {:?}", time_elapsed);
+                    println!("Response time: {time_elapsed:?}");
                     println!("{}", "TEST PASSED!".green());
 
                     self.statistics.num_passed += 1;
@@ -68,7 +75,7 @@ impl Executor {
                         "Got move [{}] but expected one of: {:?}",
                         response_move.r#move, exported_game_state.next_valid_moves
                     );
-                    println!("Response time: {:?}", time_elapsed);
+                    println!("Response time: {time_elapsed:?}");
                     println!("{}", "TEST FAILED!".red());
 
                     self.statistics.num_failed += 1;
@@ -92,7 +99,7 @@ impl Executor {
             if total == 0 {
                 0.0
             } else {
-                (self.statistics.num_passed as f32 / total as f32) * 100.0
+                (f64::from(self.statistics.num_passed) / f64::from(total)) * 100.0
             }
         });
         println!(
@@ -101,7 +108,7 @@ impl Executor {
         );
         println!("Average response time: {:?}", {
             let total_time: Duration = self.statistics.response_times.iter().sum();
-            total_time / self.statistics.response_times.len() as u32
+            total_time / self.statistics.response_times.len().try_into().unwrap()
         });
         println!("Min response time: {:?}", {
             self.statistics
@@ -127,7 +134,7 @@ struct MoveResponse {
 
 #[derive(Default)]
 struct TestStatistics {
-    num_passed: u32,
-    num_failed: u32,
+    num_passed: i32,
+    num_failed: i32,
     response_times: Vec<std::time::Duration>,
 }
