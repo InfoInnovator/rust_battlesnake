@@ -5,8 +5,6 @@ use core::f64;
 
 use crate::{Board, Move, game::simulator::Simulator, game::tree::Node};
 
-use super::simulator::DeathCause;
-
 const ERROR_MARGIN: f64 = 0.00001;
 
 /// Monte Carlo Tree Search (MCTS) implementation for the Battlesnake game.
@@ -109,22 +107,6 @@ impl Mcts {
                 sim.make_move(&random_move);
 
                 let turns = sim.simulate_turns(100);
-                // match death_cause {
-                //     DeathCause::Survived(turns) => {
-                //         for i in way_back {
-                //             new_current.children[i].reward += 10.0 + (0.25 * f64::from(turns));
-                //             new_current.children[i].simulations += 1;
-
-                //             new_current = &mut new_current.children[i];
-                //         }
-                //     }
-                //     _ => {
-                //         for i in way_back {
-                //             new_current.children[i].simulations += 1;
-                //             new_current = &mut new_current.children[i];
-                //         }
-                //     }
-                // }
                 for i in way_back {
                     new_current.children[i].reward += 10.0 + (0.25 * f64::from(turns));
                     new_current.children[i].simulations += 1;

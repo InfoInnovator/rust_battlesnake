@@ -301,24 +301,3 @@ impl Simulator {
         self.turn
     }
 }
-
-#[derive(Debug, Clone)]
-pub enum DeathCause {
-    Starvation,
-    OutOfBounds,
-    Collision,
-    OutOfMoves,
-    Survived(u32),
-}
-
-impl std::fmt::Display for DeathCause {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DeathCause::Starvation => write!(f, "Starvation"),
-            DeathCause::OutOfBounds => write!(f, "Out of bounds"),
-            DeathCause::Collision => write!(f, "Collision"),
-            DeathCause::OutOfMoves => write!(f, "Out of moves"),
-            DeathCause::Survived(turns) => write!(f, "Survived {turns} turns"),
-        }
-    }
-}
