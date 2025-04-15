@@ -7,39 +7,47 @@ use crate::Move;
 
 #[derive(Debug, Clone)]
 pub struct Node {
-    pub id: i32,
+    pub id: u32,
     pub current_move: Option<Move>,
-    pub wins: i32,
+    pub reward: f64,
     pub simulations: i32,
     pub children: Vec<Node>,
 }
 
 impl Node {
-    pub fn new(id: i32, current_move: Option<Move>) -> Node {
+    #[must_use]
+    pub fn new(id: u32, current_move: Option<Move>) -> Node {
         Node {
             id,
             current_move,
-            wins: 0,
+            reward: 0.0,
             simulations: 0,
             children: Vec::new(),
         }
     }
 
-    pub fn get_ucb(&self, total_sims: i32) -> f64 {
+    #[must_use]
+    pub fn get_ucb(&self, total_sims: f64) -> f64 {
         if self.simulations == 0 {
             return f64::INFINITY;
         }
-        let exploitation = f64::from(self.wins) / f64::from(self.simulations);
-        let exploration = (1.3 * f64::from(total_sims).ln() / f64::from(self.simulations)).sqrt();
+        let exploitation = self.reward / f64::from(self.simulations);
+        let exploration = 4.0 * (total_sims.ln() / f64::from(self.simulations)).sqrt();
         exploitation + exploration
     }
 
-    pub fn add_child(&mut self, new_node: Node) -> Node {
+    pub fn add_child(&mut self, new_node: Node) {
         self.children.push(new_node);
-        self.clone()
+        // self.clone()
     }
 
-    pub fn save_graph(&self, _filename: &str) {
+    /// This functions saves a graph representation of the tree to a file
+    /// with a fixed depth of 3. The actual tree might be bigger.
+    ///
+    /// # Arguments
+    ///
+    /// * `filename` - The name of the file to save the graph to.
+    pub fn save_graph(&self, filename: &str) {
         let mut result = String::new();
         result.push_str("digraph G {\n");
 
@@ -49,25 +57,24 @@ impl Node {
         };
         write!(
             &mut result,
-            "  {} [label=\"{}\ncurrent_move: {}\nwins: {}\nsimulations: {}\"];\n",
-            self.id, self.id, root_move, self.wins, self.simulations
+            "  {} [label=\"{}\ncurrent_move: {}\nreward: {}\nsimulations: {}\"];\n",
+            self.id, self.id, root_move, self.reward, self.simulations
         )
         .unwrap();
-        result.push_str(&self.export());
+
+        let depth = 3;
+        result.push_str(&self.export(f64::from(self.simulations), depth));
 
         result.push_str("}\n");
 
-        // std::fs::write(format!("{}.dot", filename), result).expect("Unable to write file");
-        // std::process::Command::new("dot")
-        //     .arg("-Tpdf")
-        //     .arg(format!("{}.dot", filename))
-        //     .arg("-o")
-        //     .arg(format!("{}.pdf", filename))
-        //     .output()
-        //     .expect("failed to execute process");
+        std::fs::write(format!("{filename}.dot"), result).expect("Unable to write file");
     }
 
-    fn export(&self) -> String {
+    fn export(&self, total_sims: f64, depth: i32) -> String {
+        if depth <= 0 {
+            return String::new();
+        }
+
         let mut result = String::new();
 
         for child in &self.children {
@@ -77,17 +84,17 @@ impl Node {
             };
             write!(
                 &mut result,
-                "  {} [label=\"{}\ncurrent_move: {}\nwins: {}\nsimulations: {}\nucb: {}\"];\n",
+                "  {} [label=\"{}\ncurrent_move: {}\nreward: {}\nsimulations: {}\nucb: {}\"];\n",
                 child.id,
                 child.id,
                 child_move,
-                child.wins,
+                child.reward,
                 child.simulations,
-                child.get_ucb(self.simulations)
+                child.get_ucb(total_sims)
             )
             .unwrap();
             writeln!(&mut result, "  {} -> {};", self.id, child.id).unwrap();
-            result.push_str(&child.export());
+            result.push_str(&child.export(total_sims, depth - 1));
         }
 
         result

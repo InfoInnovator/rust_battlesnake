@@ -8,56 +8,23 @@ use super::game_types::{Board, Coord, Move};
 pub struct Simulator {
     pub board: Board,
     pub turn: u32,
-    pub death_cause: Option<DeathCause>,
+    // pub death_cause: Option<DeathCause>,
 }
 
 impl Simulator {
-    // pub fn new(width: u32, height: u32) -> Simulator {
-    //     let board = Board {
-    //         width: width.try_into().unwrap(),
-    //         height: height.try_into().unwrap(),
-    //         food: Vec::new(),
-    //         snakes: Vec::new(),
-    //         hazards: Vec::new(),
-    //     };
-    //     Simulator {
-    //         board,
-    //         turn: 0,
-    //         death_cause: None,
-    //     }
-    // }
-
-    // pub fn get_winner(&self) -> String {
-    //     // if snake is not outside of the board, it is the winner
-    //     for snake in &self.board.snakes {
-    //         if snake.head.x >= 0
-    //             && snake.head.x < self.board.width
-    //             && snake.head.y >= 0
-    //             && snake.head.y < self.board.height as i32
-    //         {
-    //             return snake.name.clone();
-    //         }
-    //     }
-
-    //     "".to_string()
-    // }
-
-    // pub fn get_board(&self) -> &Board {
-    //     &self.board
-    // }
-
+    /// Creates a new `Simulator` with the given `board`.
     pub fn from_board(board: Board) -> Simulator {
         Simulator {
             board,
             turn: 0,
-            death_cause: None,
+            // death_cause: None,
         }
     }
 
-    // pub fn add_snake(&mut self, snake: Battlesnake) {
-    //     self.board.snakes.push(snake);
-    // }
-
+    /// Gets the reasonable moves for the snake.
+    ///
+    /// The returned moves are the ones that do not collide with the snake's own body
+    /// do not move out of bounds.
     pub fn get_reasonable_moves(&mut self) -> Vec<Move> {
         let mut is_move_safe: HashMap<_, _> = vec![
             (Move::Up, true),
@@ -71,17 +38,14 @@ impl Simulator {
         let my_head = &self.board.snakes[0].head;
         let my_neck = &self.board.snakes[0].body[1];
 
+        // check for own neck
         if my_neck.x < my_head.x {
-            // Neck is left of head, don't move left
             is_move_safe.insert(Move::Left, false);
         } else if my_neck.x > my_head.x {
-            // Neck is right of head, don't move right
             is_move_safe.insert(Move::Right, false);
         } else if my_neck.y < my_head.y {
-            // Neck is below head, don't move down
             is_move_safe.insert(Move::Down, false);
         } else if my_neck.y > my_head.y {
-            // Neck is above head, don't move up
             is_move_safe.insert(Move::Up, false);
         }
 
@@ -122,6 +86,7 @@ impl Simulator {
             .collect()
     }
 
+    /// Makes the given move for the snake.
     pub fn make_move(&mut self, next_move: &Move) {
         let snake = self.board.snakes.first_mut().unwrap();
 
@@ -152,6 +117,17 @@ impl Simulator {
             snake.body.insert(0, new_head.clone());
             snake.head = new_head.clone();
         }
+
+        // check for eaten food
+        for food in &self.board.food {
+            if snake.head.x == food.x && snake.head.y == food.y {
+                // snake ate food
+                snake.body.push(snake.body.last().unwrap().clone());
+                snake.health = 100;
+                // self.board.food.retain(|f| f != food);
+                break;
+            }
+        }
     }
 
     fn init_snake(&mut self) {
@@ -168,7 +144,8 @@ impl Simulator {
         }
     }
 
-    fn check_snake_collisions(&mut self) {
+    #[must_use]
+    fn check_snake_collisions(&mut self) -> bool {
         for snake in &self.board.snakes {
             for other_snake in &self.board.snakes {
                 // if snake.id == other_snake.id {
@@ -182,11 +159,14 @@ impl Simulator {
                         //     "snake {} collided with snake {}",
                         //     snake.id, other_snake.id
                         // );
-                        self.death_cause = Some(DeathCause::Collision);
+                        // self.death_cause = Some(DeathCause::Collision);
+                        return true;
                     }
                 }
             }
         }
+
+        false
     }
 
     fn check_food(&mut self) {
@@ -207,19 +187,23 @@ impl Simulator {
         }
     }
 
-    fn check_out_of_bounds(&mut self) {
+    #[must_use]
+    fn check_out_of_bounds(&mut self) -> bool {
         for snake in &self.board.snakes {
             if snake.head.x < 0
                 || snake.head.x >= self.board.width
                 || snake.head.y < 0
                 || snake.head.y >= self.board.height
             {
-                self.death_cause = Some(DeathCause::OutOfBounds);
+                // self.death_cause = Some(DeathCause::OutOfBounds);
+                return true;
             }
         }
+
+        false
     }
 
-    pub fn simulate_turns(&mut self, turns: u32) -> Option<DeathCause> {
+    pub fn simulate_turns(&mut self, turns: u32) -> u32 {
         for _ in 0..turns {
             if self.turn == 0 {
                 self.init_snake();
@@ -228,7 +212,8 @@ impl Simulator {
                 let possible_moves = self.get_reasonable_moves();
                 if possible_moves.is_empty() {
                     // println!("no possible moves in sim -> Death");
-                    return Some(DeathCause::OutOfMoves);
+                    // return Some(DeathCause::OutOfMoves);
+                    return self.turn;
                 }
                 for snake in &mut self.board.snakes {
                     let random_index = rand::random_range(0..possible_moves.len());
@@ -266,13 +251,17 @@ impl Simulator {
                 }
 
                 // check for collisions
-                self.check_snake_collisions();
+                if self.check_snake_collisions() {
+                    return self.turn;
+                }
 
                 // check for food
                 self.check_food();
 
                 // check for out of bounds
-                self.check_out_of_bounds();
+                if self.check_out_of_bounds() {
+                    return self.turn;
+                }
             }
 
             // spawn food every 6th turn
@@ -288,13 +277,14 @@ impl Simulator {
                 // println!("snake health: {}", snake.health);
 
                 if snake.health <= 0 {
-                    self.death_cause = Some(DeathCause::Starvation);
+                    // self.death_cause = Some(DeathCause::Starvation);
+                    return self.turn;
                 }
             }
 
-            if self.death_cause.is_some() {
-                break;
-            }
+            // if self.death_cause.is_some() {
+            //     break;
+            // }
 
             self.turn += 1;
 
@@ -303,7 +293,12 @@ impl Simulator {
             // println!();
         }
 
-        self.death_cause.clone()
+        // if self.death_cause.is_none() {
+        //     self.death_cause = Some(DeathCause::Survived(self.turn));
+        // }
+
+        // self.death_cause.clone()
+        self.turn
     }
 }
 
@@ -313,6 +308,7 @@ pub enum DeathCause {
     OutOfBounds,
     Collision,
     OutOfMoves,
+    Survived(u32),
 }
 
 impl std::fmt::Display for DeathCause {
@@ -322,6 +318,7 @@ impl std::fmt::Display for DeathCause {
             DeathCause::OutOfBounds => write!(f, "Out of bounds"),
             DeathCause::Collision => write!(f, "Collision"),
             DeathCause::OutOfMoves => write!(f, "Out of moves"),
+            DeathCause::Survived(turns) => write!(f, "Survived {turns} turns"),
         }
     }
 }

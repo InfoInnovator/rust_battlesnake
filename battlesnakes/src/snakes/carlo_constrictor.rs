@@ -27,6 +27,6 @@ impl BattlesnakeFactory for CarloConstrictorFactory {
         board: &crate::game::game_types::Board,
         _you: &crate::game::game_types::Battlesnake,
     ) -> crate::game::game_types::Move {
-        Mcts::get_move(board, turn)
+        Mcts::new(500).get_move(board, turn)
     }
 }
