@@ -9,10 +9,10 @@ use std::env;
 use battlesnakes::game::game_types::GameState;
 use battlesnakes::{BoxedBattlesnakeFactory, add_all_factories};
 use log::info;
-use rocket::State;
 use rocket::fairing::AdHoc;
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use rocket::{Config, State};
 use serde_json::{Value, json};
 
 #[get("/")]
@@ -62,12 +62,6 @@ fn handle_end(_end_req: Json<GameState>) -> Status {
 
 #[launch]
 fn rocket() -> _ {
-    if let Ok(port) = env::var("PORT") {
-        unsafe {
-            env::set_var("ROCKET_PORT", &port);
-        }
-    }
-
     if env::var("RUST_LOG").is_err() {
         unsafe {
             env::set_var("RUST_LOG", "info");
@@ -78,7 +72,14 @@ fn rocket() -> _ {
 
     info!("Starting Battlesnake Server...");
 
+    let config = Config {
+        address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0)),
+        port: 8000,
+        ..Default::default()
+    };
+
     rocket::build()
+        .configure(config)
         .manage(add_all_factories())
         .attach(AdHoc::on_response("Server ID Middleware", |_, res| {
             Box::pin(async move {
