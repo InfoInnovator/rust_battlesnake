@@ -14,6 +14,16 @@ pub struct Game {
     pub timeout: u32,
 }
 
+impl Game {
+    pub fn new() -> Self {
+        Self {
+            id: String::new(),
+            ruleset: HashMap::new(),
+            timeout: 0,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Board {
     pub height: i32,
@@ -50,11 +60,7 @@ impl Board {
                                 print!("{:2}", "O");
                             }
                             contains_snake = true;
-                            break;
                         }
-                    }
-                    if contains_snake {
-                        break;
                     }
                 }
 
@@ -64,7 +70,6 @@ impl Board {
                         print!("{:2}", "F");
 
                         contains_snake = true;
-                        break;
                     }
                 }
 
@@ -81,7 +86,7 @@ impl Board {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Battlesnake {
     pub id: String,
     pub name: String,
@@ -97,6 +102,12 @@ pub struct Battlesnake {
 pub struct Coord {
     pub x: i32,
     pub y: i32,
+}
+
+impl Coord {
+    pub fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
 }
 
 #[derive(Serialize, Hash, PartialEq, Eq, Clone, Debug)]
