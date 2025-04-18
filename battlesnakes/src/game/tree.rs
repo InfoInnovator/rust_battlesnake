@@ -15,6 +15,9 @@ pub struct Node {
 }
 
 impl Node {
+    /// Create a new node with the given id and current move.
+    ///
+    /// The id is only used to identify the node inside of a generated graph.
     #[must_use]
     pub fn new(id: u32, current_move: Option<Move>) -> Node {
         Node {
@@ -26,6 +29,7 @@ impl Node {
         }
     }
 
+    /// This calculates the Upper Confidence Bound (UCB) for the node.
     #[must_use]
     pub fn get_ucb(&self, total_sims: f64) -> f64 {
         if self.simulations == 0 {
@@ -36,9 +40,9 @@ impl Node {
         exploitation + exploration
     }
 
+    /// Add a child node to the current node.
     pub fn add_child(&mut self, new_node: Node) {
         self.children.push(new_node);
-        // self.clone()
     }
 
     /// This functions saves a graph representation of the tree to a file
@@ -70,6 +74,15 @@ impl Node {
         std::fs::write(format!("{filename}.dot"), result).expect("Unable to write file");
     }
 
+    /// This function is used to export the tree to a string in DOT format.
+    ///
+    /// This is called recursively for each child node. The tree can be much bigger than `depth`,
+    /// but only the first `depth` levels are exported in order to keep the file usable.
+    ///
+    /// # Arguments
+    ///
+    /// * `total_sims` - The total number of simulations performed.
+    /// * `depth`- The total depth of the tree to export.
     fn export(&self, total_sims: f64, depth: i32) -> String {
         if depth <= 0 {
             return String::new();

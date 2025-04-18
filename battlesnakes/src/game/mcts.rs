@@ -64,7 +64,7 @@ impl Mcts {
     ///
     /// Panics if the used index could not be converted to usize
     #[must_use]
-    pub fn get_move(&mut self, board: &Board, turn: &i32) -> Move {
+    pub fn get_move(&mut self, board: &Board, _turn: &i32) -> Move {
         while self.current_iteration < self.max_iterations {
             // vec with local indexes of used nodes from top to bottom
             let mut way_back: Vec<usize> = Vec::new();
@@ -120,7 +120,7 @@ impl Mcts {
             self.current_iteration += 1;
         }
 
-        self.root.save_graph(format!("turn_{turn}").as_str());
+        // self.root.save_graph(format!("turn_{turn}").as_str());
 
         self.get_best_move().unwrap_or_else(|| {
             log::error!("No best move found, returning default move: UP");
@@ -128,7 +128,7 @@ impl Mcts {
         })
     }
 
-    /// Returns the best move based on the simulation results.
+    /// Returns the best move based on the monte carlo simulation results.
     fn get_best_move(&self) -> Option<Move> {
         let mut best_move = None;
         let mut best_win = f64::MIN;
