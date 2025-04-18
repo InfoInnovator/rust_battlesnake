@@ -1,7 +1,10 @@
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 
-use crate::{BattlesnakeFactory, game::mcts::Mcts};
+use crate::{
+    BattlesnakeFactory,
+    game::{game_types::GameState, mcts::Mcts},
+};
 
 pub struct CarloConstrictorFactory;
 
@@ -22,11 +25,17 @@ impl BattlesnakeFactory for CarloConstrictorFactory {
 
     fn handle_move(
         &self,
-        _game: &crate::game::game_types::Game,
+        game: &crate::game::game_types::Game,
         turn: &i32,
         board: &crate::game::game_types::Board,
-        _you: &crate::game::game_types::Battlesnake,
+        you: &crate::game::game_types::Battlesnake,
     ) -> crate::game::game_types::Move {
-        Mcts::new(500).get_move(board, turn)
+        let game_state = GameState {
+            game: game.clone(),
+            turn: *turn,
+            board: board.clone(),
+            you: you.clone(),
+        };
+        Mcts::new(500).get_move(game_state)
     }
 }

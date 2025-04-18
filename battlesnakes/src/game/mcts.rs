@@ -3,7 +3,9 @@
 
 use core::f64;
 
-use crate::{Board, Move, game::simulator::Simulator, game::tree::Node};
+use crate::{Move, game::simulator::Simulator, game::tree::Node};
+
+use super::game_types::GameState;
 
 const ERROR_MARGIN: f64 = 0.00001;
 
@@ -64,12 +66,12 @@ impl Mcts {
     ///
     /// Panics if the used index could not be converted to usize
     #[must_use]
-    pub fn get_move(&mut self, board: &Board, _turn: &i32) -> Move {
+    pub fn get_move(&mut self, game_state: GameState) -> Move {
         while self.current_iteration < self.max_iterations {
             // vec with local indexes of used nodes from top to bottom
             let mut way_back: Vec<usize> = Vec::new();
 
-            let mut sim = Simulator::from_board(board.clone());
+            let mut sim = Simulator::from_gamestate(&mut game_state.clone());
 
             // traverse tree to find best node using ucb formula
             let mut current_node = &mut self.root;
@@ -82,11 +84,14 @@ impl Mcts {
                 current_node = &mut current_node.children[best_index];
 
                 // perform the move in the simulator
-                sim.make_move(&current_node.current_move.clone().unwrap());
+                sim.make_move(
+                    &current_node.current_move.clone().unwrap(),
+                    game_state.you.id.clone(),
+                );
             }
 
             // expand the child with all reasonable moves
-            let possible_moves = sim.get_reasonable_moves();
+            let possible_moves = sim.get_reasonable_moves(game_state.you.id.clone());
             for m in &possible_moves {
                 let new_node = Node::new(self.global_node_id, Some(m.clone()));
                 current_node.add_child(new_node);
@@ -104,7 +109,7 @@ impl Mcts {
                 let random_index = rand::random_range(0..possible_moves.len());
                 let random_move = possible_moves[random_index].clone();
                 way_back.push(random_index);
-                sim.make_move(&random_move);
+                sim.make_move(&random_move, game_state.you.id.clone());
 
                 let turns = sim.simulate_turns(100);
                 for i in way_back {
