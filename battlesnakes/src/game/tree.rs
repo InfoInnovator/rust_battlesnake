@@ -85,7 +85,7 @@ impl Node {
         )
         .unwrap();
 
-        let depth = -1;
+        let depth = 4;
         result.push_str(&self.export(f64::from(self.simulations), depth, game_state));
 
         result.push_str("}\n");
