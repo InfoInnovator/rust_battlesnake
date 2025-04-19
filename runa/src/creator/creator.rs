@@ -58,6 +58,17 @@ impl Creator {
         )
         .unwrap();
 
+        let my_snake = Battlesnake {
+            id: "my_snake_id".to_string(),
+            name: "my_snake".to_string(),
+            health: 100,
+            body: Vec::new(),
+            head: battlesnakes::game::game_types::Coord { x: 0, y: 0 },
+            length: 0,
+            latency: String::new(),
+            shout: None,
+        };
+
         let game_state = GameState {
             game,
             turn: 0,
@@ -65,28 +76,10 @@ impl Creator {
                 height: field_size,
                 width: field_size,
                 food: Vec::new(),
-                snakes: vec![Battlesnake {
-                    id: "empty_id".to_string(),
-                    name: "empty_snake".to_string(),
-                    health: 100,
-                    body: Vec::new(),
-                    head: battlesnakes::game::game_types::Coord { x: 0, y: 0 },
-                    length: 0,
-                    latency: String::new(),
-                    shout: None,
-                }],
+                snakes: vec![my_snake.clone()],
                 hazards: Vec::new(),
             },
-            you: Battlesnake {
-                id: "empty_id".to_string(),
-                name: "empty_snake".to_string(),
-                health: 100,
-                body: Vec::new(),
-                head: battlesnakes::game::game_types::Coord { x: 0, y: 0 },
-                length: 0,
-                latency: String::new(),
-                shout: None,
-            },
+            you: my_snake,
         };
 
         Self {
@@ -145,16 +138,16 @@ impl Creator {
                         KeyCode::Char('e') => {
                             self.export(&self.config.output_file);
                         }
-                        KeyCode::Char('1') => {
+                        KeyCode::Char('w') => {
                             self.next_valid_moves.push(Move::Up);
                         }
-                        KeyCode::Char('2') => {
+                        KeyCode::Char('d') => {
                             self.next_valid_moves.push(Move::Right);
                         }
-                        KeyCode::Char('3') => {
+                        KeyCode::Char('s') => {
                             self.next_valid_moves.push(Move::Down);
                         }
-                        KeyCode::Char('4') => {
+                        KeyCode::Char('a') => {
                             self.next_valid_moves.push(Move::Left);
                         }
                         _ => {}
@@ -189,6 +182,7 @@ impl Creator {
             })
             .collect::<Vec<_>>();
 
+        // Board
         for (i, inner) in all_inner.iter().enumerate() {
             for (j, current) in inner.iter().enumerate() {
                 let mut block = Block::default();

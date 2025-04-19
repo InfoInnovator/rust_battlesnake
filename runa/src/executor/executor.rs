@@ -7,7 +7,7 @@ use battlesnakes::game::game_types::Move;
 use crossterm::style::Stylize;
 use reqwest::header::{ACCEPT_ENCODING, CONTENT_TYPE};
 
-use crate::creator::ExportedGameState;
+use crate::creator::creator::ExportedGameState;
 
 pub struct Executor {
     snake_name: String,
@@ -25,8 +25,14 @@ impl Executor {
     pub fn run_all_scenarios(&mut self) {
         println!("Running all scenarios...\n");
 
-        let scenarios = std::fs::read_dir("./scenarios").unwrap();
-        scenarios.for_each(|file| {
+        let scenarios: Vec<_> = std::fs::read_dir("scenarios").unwrap().collect();
+
+        if scenarios.is_empty() {
+            println!("No scenarios found in the `scenarios` directory.");
+            return;
+        }
+
+        scenarios.into_iter().for_each(|file| {
             let file = file.unwrap();
             println!("Test {:?}", file.file_name());
 
