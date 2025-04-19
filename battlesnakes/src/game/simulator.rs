@@ -9,7 +9,7 @@ pub struct Simulator {
     // pub board: Board,
     // pub you: String,
     // turn: u32,
-    game_state: GameState,
+    pub game_state: GameState,
 }
 
 impl Simulator {
@@ -81,10 +81,6 @@ impl Simulator {
 
         // check for collisions with body parts
         for snake in &self.game_state.board.snakes {
-            if snake.id == snake_id {
-                continue;
-            }
-
             for body_part in &snake.body {
                 if body_part.x == my_head.x - 1 && body_part.y == my_head.y {
                     is_move_safe.insert(Move::Left, false);
@@ -176,9 +172,32 @@ impl Simulator {
                     if snake.head.x == body_part.x && snake.head.y == body_part.y {
                         if snake.id != self.game_state.you.id {
                             // we did not collide, so remove the collided snakes from the board
-                            self.game_state.board.snakes.retain(|s| s.id != snake.id);
+
+                            // remove the shorter snake
+                            if snake.length > other_snake.length {
+                                self.game_state
+                                    .board
+                                    .snakes
+                                    .retain(|s| s.id != other_snake.id);
+                            } else if snake.length < other_snake.length {
+                                self.game_state.board.snakes.retain(|s| s.id != snake.id);
+                            } else {
+                                // if they are the same length, remove both
+                                self.game_state
+                                    .board
+                                    .snakes
+                                    .retain(|s| s.id != other_snake.id || s.id != snake.id);
+                            }
                         } else {
-                            return true;
+                            // check if 'you' is bigger
+                            if self.game_state.you.length > other_snake.length {
+                                self.game_state
+                                    .board
+                                    .snakes
+                                    .retain(|s| s.id != other_snake.id);
+                            } else {
+                                return true;
+                            }
                         }
                     }
                 }
@@ -197,9 +216,7 @@ impl Simulator {
             for food in &self.game_state.board.food.clone() {
                 if snake.head.x == food.x && snake.head.y == food.y {
                     // snake ate food
-                    println!("len before: {}", snake.body.len());
                     snake.body.push(snake.body.last().unwrap().clone());
-                    println!("len after: {}", snake.body.len());
                     snake.health = 100;
                     snake.length += 1;
                     self.game_state.board.food.retain(|f| f != food);

@@ -2,6 +2,9 @@
 #![warn(clippy::pedantic)]
 
 use core::f64;
+use std::collections::HashMap;
+
+use rand::seq::IndexedRandom;
 
 use crate::{Move, game::simulator::Simulator, game::tree::Node};
 
@@ -16,18 +19,20 @@ pub struct Mcts {
     global_node_id: u32,
     current_iteration: u32,
     max_iterations: u32,
+    you_id: String,
 }
 
 impl Mcts {
     /// Creates a new instance of Mcts.
     #[must_use]
-    pub fn new(max_iterations: u32) -> Self {
+    pub fn new(max_iterations: u32, you_id: String) -> Self {
         Self {
             global_node_id: 1,
             total_sims: 0,
-            root: Node::new(0, None),
+            root: Node::new(0, HashMap::new()),
             current_iteration: 0,
             max_iterations,
+            you_id,
         }
     }
 
@@ -83,17 +88,37 @@ impl Mcts {
                 way_back.push(best_index);
                 current_node = &mut current_node.children[best_index];
 
-                // perform the move in the simulator
-                sim.make_move(
-                    &current_node.current_move.clone().unwrap(),
-                    game_state.you.id.clone(),
-                );
+                // perform the moves in the simulator
+                for (k, v) in &current_node.current_moves {
+                    // in case there are no more moves available for a snake, we skip it
+                    let next_move = match v.clone() {
+                        Some(m) => m,
+                        None => continue,
+                    };
+                    sim.make_move(&next_move, k.clone());
+                }
             }
 
-            // expand the child with all reasonable moves
+            // expand the child with all reasonable moves for 'you' and a single reasonable move for every other snake
             let possible_moves = sim.get_reasonable_moves(game_state.you.id.clone());
             for m in &possible_moves {
-                let new_node = Node::new(self.global_node_id, Some(m.clone()));
+                let mut next_moves = HashMap::new();
+                for snake in &sim.game_state.board.snakes.clone() {
+                    if snake.id == game_state.you.id {
+                        next_moves.insert(game_state.you.id.clone(), Some(m.clone()));
+                        continue;
+                    }
+
+                    next_moves.insert(
+                        snake.id.clone(),
+                        sim.get_reasonable_moves(snake.id.clone())
+                            .choose(&mut rand::rng())
+                            .cloned(),
+                    );
+                }
+
+                let new_node = Node::new(self.global_node_id, next_moves.clone());
+
                 current_node.add_child(new_node);
                 self.global_node_id += 1;
             }
@@ -109,6 +134,7 @@ impl Mcts {
                 let random_index = rand::random_range(0..possible_moves.len());
                 let random_move = possible_moves[random_index].clone();
                 way_back.push(random_index);
+
                 sim.make_move(&random_move, game_state.you.id.clone());
 
                 let turns = sim.simulate_turns(100);
@@ -125,7 +151,8 @@ impl Mcts {
             self.current_iteration += 1;
         }
 
-        // self.root.save_graph(format!("turn_{turn}").as_str());
+        self.root
+            .save_graph(format!("turn_{}", game_state.turn).as_str(), &game_state);
 
         self.get_best_move().unwrap_or_else(|| {
             log::error!("No best move found, returning default move: UP");
@@ -142,7 +169,14 @@ impl Mcts {
             let win = child.reward / f64::from(child.simulations);
             if win > best_win {
                 best_win = win;
-                best_move = Some(child.current_move.clone().unwrap());
+                best_move = Some(
+                    child
+                        .current_moves
+                        .get(&self.you_id)
+                        .unwrap()
+                        .clone()
+                        .unwrap(),
+                );
             }
         }
 
