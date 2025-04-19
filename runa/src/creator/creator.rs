@@ -160,6 +160,76 @@ impl Creator {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
+        let global_layout = Layout::default()
+            .direction(ratatui::layout::Direction::Vertical)
+            .constraints([Constraint::Percentage(50); 2])
+            .split(frame.area());
+
+        let top_global = Layout::default()
+            .direction(ratatui::layout::Direction::Horizontal)
+            .constraints([Constraint::Percentage(50); 2])
+            .split(global_layout[0]);
+
+        let bottom_global = Layout::default()
+            .direction(ratatui::layout::Direction::Horizontal)
+            .constraints([Constraint::Percentage(50); 2])
+            .split(global_layout[1]);
+
+        self.draw_board(frame, top_global[0]);
+
+        let you_layout = Layout::default()
+            .direction(ratatui::layout::Direction::Horizontal)
+            .constraints([Constraint::Percentage(50); 2])
+            .split(bottom_global[0]);
+        self.draw_you_snake(frame, you_layout[0]);
+        self.draw_you_valid_moves(frame, you_layout[1]);
+    }
+
+    fn draw_you_valid_moves(&mut self, frame: &mut Frame, area: ratatui::layout::Rect) {
+        frame.render_widget(
+            Block::new().title("Valid Moves").borders(Borders::all()),
+            area,
+        );
+
+        let mut body_text = String::new();
+        for valid_move in &self.next_valid_moves {
+            body_text.push_str(&format!("+ {valid_move:?}\n"));
+        }
+
+        let inner_area = area.inner(Margin {
+            vertical: 1,
+            horizontal: 1,
+        });
+        frame.render_widget(Paragraph::new(body_text), inner_area);
+    }
+
+    fn draw_you_snake(&mut self, frame: &mut Frame, area: ratatui::layout::Rect) {
+        frame.render_widget(
+            Block::new()
+                .title(format!("{}", self.game_state.you.name))
+                .borders(Borders::all()),
+            area,
+        );
+
+        let mut body_text = String::new();
+        for body_part in &self.game_state.you.body {
+            if body_part.x == self.game_state.you.head.x
+                && body_part.y == self.game_state.you.head.y
+            {
+                body_text.push_str(&format!("+ {body_part:?} (Head)\n"));
+            } else {
+                body_text.push_str(&format!("+ {body_part:?}\n"));
+            }
+        }
+
+        let inner_area = area.inner(Margin {
+            vertical: 1,
+            horizontal: 1,
+        });
+        frame.render_widget(Paragraph::new(body_text), inner_area);
+    }
+
+    fn draw_board(&mut self, frame: &mut Frame, area: ratatui::layout::Rect) {
         let mut hor_constraints =
             vec![Constraint::Length(4); self.game_state.board.width.try_into().unwrap()];
         hor_constraints.push(Constraint::Percentage(100));
@@ -170,7 +240,7 @@ impl Creator {
         let outer = Layout::default()
             .direction(ratatui::layout::Direction::Horizontal)
             .constraints(hor_constraints)
-            .split(frame.area());
+            .split(area);
 
         let all_inner = outer
             .iter()
@@ -222,41 +292,6 @@ impl Creator {
             Block::new().on_black(),
             outer[usize::try_from(self.game_state.board.width).unwrap()],
         );
-
-        let snake_info_layout = Layout::default()
-            .direction(ratatui::layout::Direction::Vertical)
-            .constraints([Constraint::Fill(1)])
-            .split(outer[usize::try_from(self.game_state.board.width).unwrap()]);
-
-        if !self.game_state.board.snakes.is_empty() {
-            // title
-            let snake_text = format!("Snake {}", self.game_state.board.snakes[0].name);
-            let block = Block::default().title(snake_text).borders(Borders::ALL);
-            frame.render_widget(block, snake_info_layout[0]);
-
-            // snake body
-            let snake_body_layout = Layout::default()
-                .direction(ratatui::layout::Direction::Vertical)
-                .constraints(vec![
-                    Constraint::Length(1);
-                    self.game_state.board.snakes[0].body.len()
-                ])
-                .split(snake_info_layout[0].inner(Margin::new(1, 1)));
-
-            for (j, body_part) in self.game_state.board.snakes[0].body.iter().enumerate() {
-                let mut body_text = format!("{body_part:?}");
-
-                if body_part.x == self.game_state.board.snakes[0].head.x
-                    && body_part.y == self.game_state.board.snakes[0].head.y
-                {
-                    body_text = format!("{body_text} (Head)");
-                }
-
-                let body_block = Paragraph::new(body_text);
-
-                frame.render_widget(body_block, snake_body_layout[j]);
-            }
-        }
     }
 
     fn export(&self, output_file: &PathBuf) {
@@ -305,6 +340,9 @@ impl Creator {
                 x: self.cursor.0,
                 y: self.cursor.1,
             });
+
+        // copy snake to you
+        self.game_state.you = self.game_state.board.snakes[0].clone();
     }
 
     /// Adds a body part to the snake at the current cursor position
@@ -321,6 +359,9 @@ impl Creator {
                 x: self.cursor.0,
                 y: self.cursor.1,
             });
+
+        // copy snake to you
+        self.game_state.you = self.game_state.board.snakes[0].clone();
     }
 }
 
