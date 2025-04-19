@@ -6,9 +6,6 @@ use std::collections::HashMap;
 use super::game_types::{Coord, GameState, Move};
 
 pub struct Simulator {
-    // pub board: Board,
-    // pub you: String,
-    // turn: u32,
     pub game_state: GameState,
 }
 
@@ -37,14 +34,16 @@ impl Simulator {
         .into_iter()
         .collect();
 
-        let my_head = &self
+        let my_head = match &self
             .game_state
             .board
             .snakes
             .iter()
             .find(|s| s.id == snake_id)
-            .unwrap()
-            .head;
+        {
+            Some(snake) => snake.head.clone(),
+            None => return vec![],
+        };
         let my_neck = &self
             .game_state
             .board
@@ -259,14 +258,29 @@ impl Simulator {
     /// Simulates a number of turns.
     pub fn simulate_turns(&mut self, turns: u32) -> i32 {
         for _ in 0..turns {
-            let possible_moves = self.get_reasonable_moves(self.game_state.you.id.clone());
-            if possible_moves.is_empty() {
-                return self.game_state.turn;
+            // generate moves for all snakes
+            let mut possible_moves = HashMap::new();
+            let snakes = self.game_state.board.snakes.clone();
+            for snake in &snakes {
+                possible_moves.insert(
+                    snake.id.clone(),
+                    self.get_reasonable_moves(snake.id.clone()),
+                );
             }
 
+            let mut snakes_to_remove = vec![];
             for snake in &mut self.game_state.board.snakes {
-                let random_index = rand::random_range(0..possible_moves.len());
-                let next_move = possible_moves[random_index].clone();
+                let possible_moves_vec = possible_moves.get(&snake.id.clone()).unwrap().clone();
+
+                if possible_moves_vec.is_empty() && snake.id == self.game_state.you.id {
+                    return self.game_state.turn;
+                } else if possible_moves_vec.is_empty() {
+                    snakes_to_remove.push(snake.id.clone());
+                    continue;
+                }
+
+                let random_index = rand::random_range(0..possible_moves_vec.len());
+                let next_move = possible_moves_vec[random_index].clone();
 
                 let new_head = match next_move {
                     Move::Up => Coord {
@@ -295,6 +309,10 @@ impl Simulator {
                     snake.body.insert(0, new_head.clone());
                     snake.head = new_head.clone();
                 }
+            }
+
+            for snake_id in snakes_to_remove {
+                self.game_state.board.snakes.retain(|s| s.id != snake_id);
             }
 
             // check for collisions
