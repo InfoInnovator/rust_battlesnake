@@ -1,0 +1,18 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Battlesnake: Build and show graph",
+            "type": "shell",
+            "command": "dot -Tpdf turn_${input:turn}.dot -o out.pdf && firefox out.pdf"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "turn",
+            "description": "Turn:",
+            "default": "0",
+            "type": "promptString"
+        }
+    ]
+}
