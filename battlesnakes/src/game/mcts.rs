@@ -19,20 +19,20 @@ pub struct Mcts {
     global_node_id: u32,
     current_iteration: u32,
     max_iterations: u32,
-    you_id: String,
+    game_state: GameState,
 }
 
 impl Mcts {
     /// Creates a new instance of Mcts.
     #[must_use]
-    pub fn new(max_iterations: u32, you_id: String) -> Self {
+    pub fn new(game_state: GameState, max_iterations: u32) -> Self {
         Self {
             global_node_id: 1,
             total_sims: 0,
             root: Node::new(0, HashMap::new()),
             current_iteration: 0,
             max_iterations,
-            you_id,
+            game_state,
         }
     }
 
@@ -71,12 +71,12 @@ impl Mcts {
     ///
     /// Panics if the used index could not be converted to usize
     #[must_use]
-    pub fn get_move(&mut self, game_state: GameState) -> Move {
+    pub fn get_move(&mut self) -> Move {
         while self.current_iteration < self.max_iterations {
             // vec with local indexes of used nodes from top to bottom
             let mut way_back: Vec<usize> = Vec::new();
 
-            let mut sim = Simulator::from_gamestate(&mut game_state.clone());
+            let mut sim = Simulator::from_gamestate(&mut self.game_state.clone());
 
             // traverse tree to find best node using ucb formula
             let mut current_node = &mut self.root;
@@ -100,12 +100,12 @@ impl Mcts {
             }
 
             // expand the child with all reasonable moves for 'you' and a single reasonable move for every other snake
-            let possible_moves = sim.get_reasonable_moves(game_state.you.id.clone());
+            let possible_moves = sim.get_reasonable_moves(self.game_state.you.id.clone());
             for m in &possible_moves {
                 let mut next_moves = HashMap::new();
                 for snake in &sim.game_state.board.snakes.clone() {
-                    if snake.id == game_state.you.id {
-                        next_moves.insert(game_state.you.id.clone(), Some(m.clone()));
+                    if snake.id == self.game_state.you.id {
+                        next_moves.insert(self.game_state.you.id.clone(), Some(m.clone()));
                         continue;
                     }
 
@@ -135,7 +135,7 @@ impl Mcts {
                 let random_move = possible_moves[random_index].clone();
                 way_back.push(random_index);
 
-                sim.make_move(&random_move, game_state.you.id.clone());
+                sim.make_move(&random_move, self.game_state.you.id.clone());
 
                 let turns = sim.simulate_turns(100);
                 for i in way_back {
@@ -151,8 +151,10 @@ impl Mcts {
             self.current_iteration += 1;
         }
 
-        self.root
-            .save_graph(format!("turn_{}", game_state.turn).as_str(), &game_state);
+        self.root.save_graph(
+            format!("turn_{}", self.game_state.turn).as_str(),
+            &self.game_state,
+        );
 
         self.get_best_move().unwrap_or_else(|| {
             log::error!("No best move found, returning default move: UP");
@@ -172,7 +174,7 @@ impl Mcts {
                 best_move = Some(
                     child
                         .current_moves
-                        .get(&self.you_id)
+                        .get(&self.game_state.you.id)
                         .unwrap()
                         .clone()
                         .unwrap(),
