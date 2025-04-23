@@ -1,0 +1,4 @@
+[alias]
+xtask = "run --package xtask --"
+solo = "run --package xtask -- solo"
+export = "run --package xtask -- export"

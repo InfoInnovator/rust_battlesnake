@@ -151,10 +151,10 @@ impl Mcts {
             self.current_iteration += 1;
         }
 
-        self.root.save_graph(
-            format!("turn_{}", self.game_state.turn).as_str(),
-            &self.game_state,
-        );
+        // self.root.save_graph(
+        //     format!("turn_{}", self.game_state.turn).as_str(),
+        //     &self.game_state,
+        // );
 
         self.get_best_move().unwrap_or_else(|| {
             log::error!("No best move found, returning default move: UP");
