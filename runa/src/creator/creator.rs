@@ -269,17 +269,20 @@ impl Creator {
                     block = block.borders(Borders::ALL);
                 }
 
+                let cursor_y =
+                    i32::abs(i32::try_from(j).unwrap() - self.game_state.board.height + 1);
+
                 if !self.game_state.board.snakes.is_empty()
                     && self.game_state.board.snakes[0].head.x == i32::try_from(i).unwrap()
-                    && self.game_state.board.snakes[0].head.y == i32::try_from(j).unwrap()
+                    && self.game_state.board.snakes[0].head.y == cursor_y
                 {
                     block = block.title("Head");
                 }
 
                 if self.game_state.board.snakes.iter().any(|s| {
-                    s.body.iter().any(|b| {
-                        b.x == i32::try_from(i).unwrap() && b.y == i32::try_from(j).unwrap()
-                    })
+                    s.body
+                        .iter()
+                        .any(|b| b.x == i32::try_from(i).unwrap() && b.y == cursor_y)
                 }) {
                     block = block.title("Body");
                 }
@@ -311,11 +314,11 @@ impl Creator {
     /// The head is also added to the snake's body.
     /// It removes all body parts that existed before.
     fn add_head(&mut self) {
+        let x = self.cursor.0;
+        let y = i32::abs(self.cursor.1 - self.game_state.board.height + 1);
+
         // set head position
-        self.game_state.board.snakes.get_mut(0).unwrap().head = Coord {
-            x: self.cursor.0,
-            y: self.cursor.1,
-        };
+        self.game_state.board.snakes.get_mut(0).unwrap().head = Coord { x, y };
 
         // clear all previous body parts
         self.game_state
@@ -333,10 +336,7 @@ impl Creator {
             .get_mut(0)
             .unwrap()
             .body
-            .push(Coord {
-                x: self.cursor.0,
-                y: self.cursor.1,
-            });
+            .push(Coord { x, y });
 
         // copy snake to you
         self.game_state.you = self.game_state.board.snakes[0].clone();
