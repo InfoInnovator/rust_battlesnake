@@ -295,12 +295,9 @@ impl Creator {
     }
 
     fn export(&self, output_file: &PathBuf) {
-        let mut game_state_wo_snakes = self.game_state.clone();
-        game_state_wo_snakes.board.snakes.clear();
-
         let export_state = ExportedGameState {
             description: self.description.clone(),
-            game_state: game_state_wo_snakes,
+            game_state: self.game_state.clone(),
             next_valid_moves: self.next_valid_moves.clone(),
         };
         let game_state_json = serde_json::to_string(&export_state).unwrap();
