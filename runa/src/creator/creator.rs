@@ -346,16 +346,16 @@ impl Creator {
     ///
     /// The body parts need to be added from head to tail.
     fn add_body_part(&mut self) {
+        let x = self.cursor.0;
+        let y = i32::abs(self.cursor.1 - self.game_state.board.height + 1);
+
         self.game_state
             .board
             .snakes
             .get_mut(0)
             .unwrap()
             .body
-            .push(Coord {
-                x: self.cursor.0,
-                y: self.cursor.1,
-            });
+            .push(Coord { x, y });
 
         // copy snake to you
         self.game_state.you = self.game_state.board.snakes[0].clone();
