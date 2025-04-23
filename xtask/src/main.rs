@@ -49,20 +49,25 @@ fn export_graph_to_pdf(filename: String) {
     dot_cmd.wait().expect("Failed to wait on dot");
 
     let args = vec!["out.pdf"];
-    let mut pdf_open_cmd = Command::new("firefox")
+    let _ = Command::new("firefox")
         .args(args)
         .spawn()
-        .expect("Failed to open PDF");
-
-    std::thread::sleep(Duration::from_millis(250));
-
-    pdf_open_cmd.kill().expect("Failed to kill PDF viewer");
+        .expect("Failed to open PDF")
+        .wait();
 }
 
 fn start_snake_solo(snake_name: String) {
     let mut children: Vec<Child> = vec![];
 
-    // build and run battlesnake
+    // build battlesnake and wait for it to finish
+    let args = vec!["build", "-p", "rocket-server"];
+    let _ = Command::new("cargo")
+        .args(args)
+        .spawn()
+        .expect("Failed to start cargo")
+        .wait();
+
+    // run battlesnake
     let args = vec!["run", "-p", "rocket-server"];
     let snake_cmd = Command::new("cargo")
         .args(args)
@@ -71,7 +76,7 @@ fn start_snake_solo(snake_name: String) {
     children.push(snake_cmd);
 
     // wait for the server to start
-    std::thread::sleep(Duration::from_secs(2));
+    std::thread::sleep(Duration::from_secs(1));
 
     // start battlesnake cli
     let args = vec![
