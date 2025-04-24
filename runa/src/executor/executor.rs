@@ -100,7 +100,7 @@ impl Executor {
         });
         println!("Tests passed: {}", self.statistics.num_passed);
         println!("Tests failed: {}", self.statistics.num_failed);
-        println!("Test rate: {:.2}%", {
+        println!("Success rate: {:.2}%", {
             let total = self.statistics.num_passed + self.statistics.num_failed;
             if total == 0 {
                 0.0
