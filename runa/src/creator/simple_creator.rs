@@ -12,6 +12,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 
 pub struct Creator {
     cursor: (i32, i32),
@@ -27,6 +28,12 @@ pub struct Config {
 }
 
 impl Creator {
+    /// Creates a new instance of the Creator
+    ///
+    /// # Panics
+    ///
+    /// Panics if the json string cannot be parsed into a Game struct.
+    #[must_use]
     pub fn new(field_size: i32, output_file: PathBuf, description: String) -> Self {
         let game: Game = serde_json::from_str::<Game>(
             r#"{
@@ -94,6 +101,9 @@ impl Creator {
         }
     }
 
+    /// Runs the tui of the creator
+    ///
+    /// # Panics
     pub fn run(&mut self) {
         let mut terminal = ratatui::init();
 
@@ -193,7 +203,7 @@ impl Creator {
 
         let mut body_text = String::new();
         for valid_move in &self.next_valid_moves {
-            body_text.push_str(&format!("+ {valid_move:?}\n"));
+            writeln!(body_text, "+ {valid_move:?}").unwrap();
         }
 
         let inner_area = area.inner(Margin {
@@ -206,7 +216,7 @@ impl Creator {
     fn draw_you_snake(&mut self, frame: &mut Frame, area: ratatui::layout::Rect) {
         frame.render_widget(
             Block::new()
-                .title(format!("{}", self.game_state.you.name))
+                .title(self.game_state.you.name.to_string())
                 .borders(Borders::all()),
             area,
         );
@@ -216,9 +226,9 @@ impl Creator {
             if body_part.x == self.game_state.you.head.x
                 && body_part.y == self.game_state.you.head.y
             {
-                body_text.push_str(&format!("+ {body_part:?} (Head)\n"));
+                writeln!(body_text, "+ {body_part:?} (Head)").unwrap();
             } else {
-                body_text.push_str(&format!("+ {body_part:?}\n"));
+                writeln!(body_text, "+ {body_part:?}").unwrap();
             }
         }
 

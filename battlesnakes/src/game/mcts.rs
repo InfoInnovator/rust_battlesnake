@@ -91,16 +91,15 @@ impl Mcts {
                 // perform the moves in the simulator
                 for (k, v) in &current_node.current_moves {
                     // in case there are no more moves available for a snake, we skip it
-                    let next_move = match v.clone() {
-                        Some(m) => m,
-                        None => continue,
+                    let Some(next_move) = v.clone() else {
+                        continue;
                     };
-                    sim.make_move(&next_move, k.clone());
+                    sim.make_move(&next_move, k);
                 }
             }
 
             // expand the child with all reasonable moves for 'you' and a single reasonable move for every other snake
-            let possible_moves = sim.get_reasonable_moves(self.game_state.you.id.clone());
+            let possible_moves = sim.get_reasonable_moves(&self.game_state.you.id);
             for m in &possible_moves {
                 let mut next_moves = HashMap::new();
                 for snake in &sim.game_state.board.snakes.clone() {
@@ -111,7 +110,7 @@ impl Mcts {
 
                     next_moves.insert(
                         snake.id.clone(),
-                        sim.get_reasonable_moves(snake.id.clone())
+                        sim.get_reasonable_moves(&snake.id)
                             .choose(&mut rand::rng())
                             .cloned(),
                     );
@@ -135,7 +134,7 @@ impl Mcts {
                 let random_move = possible_moves[random_index].clone();
                 way_back.push(random_index);
 
-                sim.make_move(&random_move, self.game_state.you.id.clone());
+                sim.make_move(&random_move, &self.game_state.you.id);
 
                 let turns = sim.simulate_turns(100);
                 for i in way_back {

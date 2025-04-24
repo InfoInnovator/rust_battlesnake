@@ -7,21 +7,11 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Game {
     pub id: String,
     pub ruleset: HashMap<String, Value>,
     pub timeout: u32,
-}
-
-impl Game {
-    pub fn new() -> Self {
-        Self {
-            id: String::new(),
-            ruleset: HashMap::new(),
-            timeout: 0,
-        }
-    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -105,6 +95,7 @@ pub struct Coord {
 }
 
 impl Coord {
+    #[must_use]
     pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }

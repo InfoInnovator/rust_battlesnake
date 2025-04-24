@@ -7,7 +7,7 @@ use battlesnakes::game::game_types::Move;
 use crossterm::style::Stylize;
 use reqwest::header::{ACCEPT_ENCODING, CONTENT_TYPE};
 
-use crate::creator::creator::ExportedGameState;
+use crate::creator::simple_creator::ExportedGameState;
 
 pub struct Executor {
     snake_name: String,
@@ -15,6 +15,7 @@ pub struct Executor {
 }
 
 impl Executor {
+    #[must_use]
     pub fn new(snake_name: String) -> Self {
         Self {
             snake_name,
@@ -22,6 +23,9 @@ impl Executor {
         }
     }
 
+    /// Run all scenarios in the `scenarios` directory
+    ///
+    /// # Panics
     pub fn run_all_scenarios(&mut self) {
         println!("Running all scenarios...\n");
 
@@ -32,7 +36,7 @@ impl Executor {
             return;
         }
 
-        scenarios.into_iter().for_each(|file| {
+        for file in scenarios {
             let file = file.unwrap();
             println!("Test {:?}", file.file_name());
 
@@ -91,7 +95,7 @@ impl Executor {
             }
 
             println!();
-        });
+        }
 
         // print summary of tests
         println!("Summary");

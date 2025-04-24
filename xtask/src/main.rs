@@ -60,7 +60,7 @@ fn start_snake_solo(snake_name: String) {
     let mut children: Vec<Child> = vec![];
 
     // build battlesnake and wait for it to finish
-    let args = vec!["build", "-p", "rocket-server"];
+    let args = vec!["build", "-p", "rocket-server", "--release"];
     let _ = Command::new("cargo")
         .args(args)
         .spawn()
@@ -68,7 +68,7 @@ fn start_snake_solo(snake_name: String) {
         .wait();
 
     // run battlesnake
-    let args = vec!["run", "-p", "rocket-server"];
+    let args = vec!["run", "-p", "rocket-server", "--release"];
     let snake_cmd = Command::new("cargo")
         .args(args)
         .spawn()

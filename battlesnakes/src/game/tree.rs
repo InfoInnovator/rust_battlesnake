@@ -53,6 +53,8 @@ impl Node {
     /// # Arguments
     ///
     /// * `filename` - The name of the file to save the graph to.
+    ///
+    /// # Panics
     pub fn save_graph(&self, filename: &str, game_state: &GameState) {
         let mut result = String::new();
         result.push_str("digraph G {\n");

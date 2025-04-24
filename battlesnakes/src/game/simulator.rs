@@ -24,7 +24,9 @@ impl Simulator {
     ///
     /// The returned moves are the ones that do not collide with the snake's own body
     /// and do not move out of bounds.
-    pub fn get_reasonable_moves(&mut self, snake_id: String) -> Vec<Move> {
+    ///
+    /// # Panics
+    pub fn get_reasonable_moves(&mut self, snake_id: &str) -> Vec<Move> {
         let mut is_move_safe: HashMap<_, _> = vec![
             (Move::Up, true),
             (Move::Down, true),
@@ -104,7 +106,9 @@ impl Simulator {
     }
 
     /// Makes the given move on the board for the snake.
-    pub fn make_move(&mut self, next_move: &Move, snake_id: String) {
+    ///
+    /// # Panics
+    pub fn make_move(&mut self, next_move: &Move, snake_id: &str) {
         let snake = self
             .game_state
             .board
@@ -169,25 +173,7 @@ impl Simulator {
             for other_snake in &snakes {
                 for body_part in other_snake.body.iter().skip(1) {
                     if snake.head.x == body_part.x && snake.head.y == body_part.y {
-                        if snake.id != self.game_state.you.id {
-                            // we did not collide, so remove the collided snakes from the board
-
-                            // remove the shorter snake
-                            if snake.length > other_snake.length {
-                                self.game_state
-                                    .board
-                                    .snakes
-                                    .retain(|s| s.id != other_snake.id);
-                            } else if snake.length < other_snake.length {
-                                self.game_state.board.snakes.retain(|s| s.id != snake.id);
-                            } else {
-                                // if they are the same length, remove both
-                                self.game_state
-                                    .board
-                                    .snakes
-                                    .retain(|s| s.id != other_snake.id || s.id != snake.id);
-                            }
-                        } else {
+                        if snake.id == self.game_state.you.id {
                             // check if 'you' is bigger
                             if self.game_state.you.length > other_snake.length {
                                 self.game_state
@@ -196,6 +182,27 @@ impl Simulator {
                                     .retain(|s| s.id != other_snake.id);
                             } else {
                                 return true;
+                            }
+                        } else {
+                            // we did not collide, so remove the collided snakes from the board
+
+                            // remove the shorter snake
+                            match snake.length.cmp(&other_snake.length) {
+                                std::cmp::Ordering::Less => {
+                                    self.game_state.board.snakes.retain(|s| s.id != snake.id);
+                                }
+                                std::cmp::Ordering::Equal => {
+                                    self.game_state
+                                        .board
+                                        .snakes
+                                        .retain(|s| s.id != other_snake.id || s.id != snake.id);
+                                }
+                                std::cmp::Ordering::Greater => {
+                                    self.game_state
+                                        .board
+                                        .snakes
+                                        .retain(|s| s.id != other_snake.id);
+                                }
                             }
                         }
                     }
@@ -246,9 +253,9 @@ impl Simulator {
             {
                 if snake.id == self.game_state.you.id {
                     return true;
-                } else {
-                    self.game_state.board.snakes.retain(|s| s.id != snake.id);
                 }
+
+                self.game_state.board.snakes.retain(|s| s.id != snake.id);
             }
         }
 
@@ -262,20 +269,17 @@ impl Simulator {
             let mut possible_moves = HashMap::new();
             let snakes = self.game_state.board.snakes.clone();
             for snake in &snakes {
-                possible_moves.insert(
-                    snake.id.clone(),
-                    self.get_reasonable_moves(snake.id.clone()),
-                );
+                possible_moves.insert(&snake.id, self.get_reasonable_moves(&snake.id));
             }
 
             let mut snakes_to_remove = vec![];
             for snake in &mut self.game_state.board.snakes {
-                let possible_moves_vec = possible_moves.get(&snake.id.clone()).unwrap().clone();
+                let possible_moves_vec = possible_moves.get(&snake.id).unwrap().clone();
 
                 if possible_moves_vec.is_empty() && snake.id == self.game_state.you.id {
                     return self.game_state.turn;
                 } else if possible_moves_vec.is_empty() {
-                    snakes_to_remove.push(snake.id.clone());
+                    snakes_to_remove.push(&snake.id);
                     continue;
                 }
 
@@ -311,9 +315,12 @@ impl Simulator {
                 }
             }
 
-            for snake_id in snakes_to_remove {
-                self.game_state.board.snakes.retain(|s| s.id != snake_id);
-            }
+            let snake_ids_to_remove: Vec<_> =
+                snakes_to_remove.iter().map(|id| id.to_string()).collect();
+            self.game_state
+                .board
+                .snakes
+                .retain(|s| !snake_ids_to_remove.contains(&s.id));
 
             // check for collisions
             if self.check_snake_collisions() {
@@ -364,7 +371,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -378,7 +385,7 @@ mod tests {
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
 
-        simulator.make_move(&Move::Up, snake.id.clone());
+        simulator.make_move(&Move::Up, &snake.id);
         assert_eq!(simulator.game_state.you.head, Coord::new(1, 3));
         assert_eq!(simulator.game_state.you.body[0], Coord::new(1, 3));
         assert_eq!(simulator.game_state.you.body[1], Coord::new(1, 2));
@@ -388,7 +395,7 @@ mod tests {
             simulator.game_state.board.snakes.get(0).unwrap().clone()
         );
 
-        simulator.make_move(&Move::Right, snake.id.clone());
+        simulator.make_move(&Move::Right, &snake.id);
         assert_eq!(simulator.game_state.you.head, Coord::new(2, 3));
         assert_eq!(simulator.game_state.you.body[0], Coord::new(2, 3));
         assert_eq!(simulator.game_state.you.body[1], Coord::new(1, 3));
@@ -398,7 +405,7 @@ mod tests {
             simulator.game_state.board.snakes.get(0).unwrap().clone()
         );
 
-        simulator.make_move(&Move::Down, snake.id.clone());
+        simulator.make_move(&Move::Down, &snake.id);
         assert_eq!(simulator.game_state.you.head, Coord::new(2, 2));
         assert_eq!(simulator.game_state.you.body[0], Coord::new(2, 2));
         assert_eq!(simulator.game_state.you.body[1], Coord::new(2, 3));
@@ -414,7 +421,7 @@ mod tests {
         game_state.board.snakes = vec![snake.clone()];
         simulator.game_state = game_state.clone();
 
-        simulator.make_move(&Move::Left, snake.id.clone());
+        simulator.make_move(&Move::Left, &snake.id);
         assert_eq!(simulator.game_state.you.head, Coord::new(0, 2));
         assert_eq!(simulator.game_state.you.body[0], Coord::new(0, 2));
         assert_eq!(simulator.game_state.you.body[1], Coord::new(1, 2));
@@ -441,7 +448,7 @@ mod tests {
         game_state.board.snakes = vec![snake.clone(), enemy_snake.clone()];
         simulator.game_state = game_state.clone();
 
-        simulator.make_move(&Move::Up, enemy_snake.id.clone());
+        simulator.make_move(&Move::Up, &enemy_snake.id);
 
         assert_eq!(
             simulator.game_state.board.snakes.get(1).unwrap().head,
@@ -478,7 +485,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -556,7 +563,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -603,7 +610,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -672,7 +679,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -711,7 +718,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -724,7 +731,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 3);
         assert!(moves.contains(&Move::Up));
         assert!(moves.contains(&Move::Left));
@@ -756,7 +763,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -769,7 +776,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 2);
         assert!(moves.contains(&Move::Up));
         assert!(moves.contains(&Move::Left));
@@ -790,7 +797,7 @@ mod tests {
 
         // bottom-left
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -803,7 +810,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 2);
         assert!(moves.contains(&Move::Up));
         assert!(moves.contains(&Move::Right));
@@ -817,7 +824,7 @@ mod tests {
         ];
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -830,7 +837,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 2);
         assert!(moves.contains(&Move::Right));
         assert!(moves.contains(&Move::Down));
@@ -844,7 +851,7 @@ mod tests {
         ];
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -857,7 +864,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 2);
         assert!(moves.contains(&Move::Left));
         assert!(moves.contains(&Move::Down));
@@ -871,7 +878,7 @@ mod tests {
         ];
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -884,7 +891,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 2);
         assert!(moves.contains(&Move::Left));
         assert!(moves.contains(&Move::Up));
@@ -915,7 +922,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -928,7 +935,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 2);
         assert!(moves.contains(&Move::Up));
         assert!(moves.contains(&Move::Right));
@@ -970,7 +977,7 @@ mod tests {
         };
 
         let mut game_state = GameState {
-            game: Game::new(),
+            game: Game::default(),
             turn: 0,
             board: Board {
                 width: 11,
@@ -987,7 +994,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        let moves = simulator.get_reasonable_moves("abc".to_string());
+        let moves = simulator.get_reasonable_moves("abc");
         assert_eq!(moves.len(), 1);
         assert!(moves.contains(&Move::Up));
     }

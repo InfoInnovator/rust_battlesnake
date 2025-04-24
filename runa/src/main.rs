@@ -4,8 +4,8 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use creator::creator::Creator;
-use executor::executor::Executor;
+use creator::simple_creator::Creator;
+use executor::execute_all::Executor;
 
 mod creator;
 mod executor;
