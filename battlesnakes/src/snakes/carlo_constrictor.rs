@@ -36,6 +36,6 @@ impl BattlesnakeFactory for CarloConstrictorFactory {
             board: board.clone(),
             you: you.clone(),
         };
-        Mcts::new(game_state, 500).get_move()
+        Mcts::new(game_state, 250).get_move()
     }
 }

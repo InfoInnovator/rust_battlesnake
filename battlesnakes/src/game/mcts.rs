@@ -100,14 +100,21 @@ impl Mcts {
 
             // expand the child with all reasonable moves for 'you' and a single reasonable move for every other snake
             let possible_moves = sim.get_reasonable_moves(&self.game_state.you.id);
+
+            if self.current_iteration == 0 {
+                println!("Possible moves: {possible_moves:?}");
+            }
+
             for m in &possible_moves {
                 let mut next_moves = HashMap::new();
                 for snake in &sim.game_state.board.snakes.clone() {
+                    // add my own move from the possible moves
                     if snake.id == self.game_state.you.id {
                         next_moves.insert(self.game_state.you.id.clone(), Some(m.clone()));
                         continue;
                     }
 
+                    // choose a random move for the other snakes
                     next_moves.insert(
                         snake.id.clone(),
                         sim.get_reasonable_moves(&snake.id)
@@ -156,7 +163,7 @@ impl Mcts {
         // );
 
         self.get_best_move().unwrap_or_else(|| {
-            log::error!("No best move found, returning default move: UP");
+            log::warn!("No best move found, returning default move: UP");
             Move::Up
         })
     }

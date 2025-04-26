@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use super::game_types::{Coord, GameState, Move};
 
+#[derive(Clone)]
 pub struct Simulator {
     pub game_state: GameState,
 }
@@ -20,13 +21,82 @@ impl Simulator {
         }
     }
 
+    /// Returns the manhattan distance between my own head and the `snake_id`s head
+    /// after the given move.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `snake_id` is not found in the game state.
+    #[must_use]
+    pub fn get_head_dist_for_move(&self, snake_id: &str, next_move: &Move) -> i32 {
+        let snake = self
+            .game_state
+            .board
+            .snakes
+            .iter()
+            .find(|s| s.id == snake_id)
+            .unwrap();
+
+        let new_head = match next_move {
+            Move::Up => Coord {
+                x: snake.head.x,
+                y: snake.head.y + 1,
+            },
+            Move::Down => Coord {
+                x: snake.head.x,
+                y: snake.head.y - 1,
+            },
+            Move::Left => Coord {
+                x: snake.head.x - 1,
+                y: snake.head.y,
+            },
+            Move::Right => Coord {
+                x: snake.head.x + 1,
+                y: snake.head.y,
+            },
+        };
+
+        (new_head.x - self.game_state.you.head.x).abs()
+            + (new_head.y - self.game_state.you.head.y).abs()
+    }
+
+    /// Applies the most dangerous move to all enemy snakes.
+    ///
+    /// The most dangerous move is the one that brings the enemy snake closest to 'you' head.
+    fn alternate_board_with_dangerous_moves(&mut self, sim: &mut Simulator) {
+        for snake in &sim.game_state.board.snakes.clone() {
+            if snake.id == self.game_state.you.id {
+                continue;
+            }
+
+            let mut most_dangerous_move = (None, 100);
+            for m in self.get_reasonable_moves(&snake.id) {
+                let distance = self.get_head_dist_for_move(&snake.id, &m);
+                if distance < most_dangerous_move.1 {
+                    most_dangerous_move = (Some(m), distance);
+                }
+            }
+            if let Some(m) = most_dangerous_move.0 {
+                sim.make_move(&m, &snake.id);
+            }
+        }
+    }
+
     /// Gets the reasonable moves for the snake.
     ///
-    /// The returned moves are the ones that do not collide with the snake's own body
-    /// and do not move out of bounds.
+    /// The returned moves are the ones that do not collide with the snake's own body,
+    /// do not move out of bounds and avoid head-to-head collisions with other snakes if
+    /// they are longer than 'you'.
     ///
     /// # Panics
     pub fn get_reasonable_moves(&mut self, snake_id: &str) -> Vec<Move> {
+        let mut sim_clone = self.clone();
+
+        // if we try to get the possible moves for 'you', apply the most dangerous move to all enemy snakes
+        if snake_id == self.game_state.you.id {
+            self.alternate_board_with_dangerous_moves(&mut sim_clone);
+        }
+
         let mut is_move_safe: HashMap<_, _> = vec![
             (Move::Up, true),
             (Move::Down, true),
@@ -36,7 +106,7 @@ impl Simulator {
         .into_iter()
         .collect();
 
-        let my_head = match &self
+        let my_head = match &sim_clone
             .game_state
             .board
             .snakes
@@ -46,7 +116,7 @@ impl Simulator {
             Some(snake) => snake.head.clone(),
             None => return vec![],
         };
-        let my_neck = &self
+        let my_neck = &sim_clone
             .game_state
             .board
             .snakes
@@ -81,7 +151,7 @@ impl Simulator {
         }
 
         // check for collisions with body parts
-        for snake in &self.game_state.board.snakes {
+        for snake in &sim_clone.game_state.board.snakes {
             for body_part in &snake.body {
                 if body_part.x == my_head.x - 1 && body_part.y == my_head.y {
                     is_move_safe.insert(Move::Left, false);
@@ -98,6 +168,28 @@ impl Simulator {
             }
         }
 
+        // check for head-to-head collisions
+        for snake in &sim_clone.game_state.board.snakes {
+            if snake.id == snake_id {
+                continue;
+            }
+
+            if snake.length >= self.game_state.you.length {
+                if snake.head.x == my_head.x - 1 && snake.head.y == my_head.y {
+                    is_move_safe.insert(Move::Left, false);
+                }
+                if snake.head.x == my_head.x + 1 && snake.head.y == my_head.y {
+                    is_move_safe.insert(Move::Right, false);
+                }
+                if snake.head.x == my_head.x && snake.head.y == my_head.y - 1 {
+                    is_move_safe.insert(Move::Down, false);
+                }
+                if snake.head.x == my_head.x && snake.head.y == my_head.y + 1 {
+                    is_move_safe.insert(Move::Up, false);
+                }
+            }
+        }
+
         is_move_safe
             .iter()
             .filter(|(_, v)| **v)
@@ -106,6 +198,8 @@ impl Simulator {
     }
 
     /// Makes the given move on the board for the snake.
+    ///
+    /// This function is used from the MCTS to apply a single move to the board.
     ///
     /// # Panics
     pub fn make_move(&mut self, next_move: &Move, snake_id: &str) {
@@ -263,6 +357,8 @@ impl Simulator {
     }
 
     /// Simulates a number of turns.
+    ///
+    /// # Panics
     pub fn simulate_turns(&mut self, turns: u32) -> i32 {
         for _ in 0..turns {
             // generate moves for all snakes
@@ -315,8 +411,10 @@ impl Simulator {
                 }
             }
 
-            let snake_ids_to_remove: Vec<_> =
-                snakes_to_remove.iter().map(|id| id.to_string()).collect();
+            let snake_ids_to_remove: Vec<_> = snakes_to_remove
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect();
             self.game_state
                 .board
                 .snakes
@@ -392,7 +490,7 @@ mod tests {
         assert_eq!(simulator.game_state.you.body[2], Coord::new(1, 1));
         assert_eq!(
             simulator.game_state.you,
-            simulator.game_state.board.snakes.get(0).unwrap().clone()
+            simulator.game_state.board.snakes.first().unwrap().clone()
         );
 
         simulator.make_move(&Move::Right, &snake.id);
@@ -402,7 +500,7 @@ mod tests {
         assert_eq!(simulator.game_state.you.body[2], Coord::new(1, 2));
         assert_eq!(
             simulator.game_state.you,
-            simulator.game_state.board.snakes.get(0).unwrap().clone()
+            simulator.game_state.board.snakes.first().unwrap().clone()
         );
 
         simulator.make_move(&Move::Down, &snake.id);
@@ -412,7 +510,7 @@ mod tests {
         assert_eq!(simulator.game_state.you.body[2], Coord::new(1, 3));
         assert_eq!(
             simulator.game_state.you,
-            simulator.game_state.board.snakes.get(0).unwrap().clone()
+            simulator.game_state.board.snakes.first().unwrap().clone()
         );
 
         snake.body = vec![Coord::new(1, 2), Coord::new(1, 1), Coord::new(1, 0)];
@@ -428,7 +526,7 @@ mod tests {
         assert_eq!(simulator.game_state.you.body[2], Coord::new(1, 1));
         assert_eq!(
             simulator.game_state.you,
-            simulator.game_state.board.snakes.get(0).unwrap().clone()
+            simulator.game_state.board.snakes.first().unwrap().clone()
         );
 
         let enemy_snake = Battlesnake {
@@ -498,7 +596,7 @@ mod tests {
         };
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
-        assert_eq!(simulator.check_snake_collisions(), true);
+        assert!(simulator.check_snake_collisions());
 
         let snake = Battlesnake {
             id: "abc".to_string(),
@@ -537,9 +635,8 @@ mod tests {
         game_state.you = snake.clone();
         simulator.game_state = game_state.clone();
 
-        assert_eq!(
-            simulator.check_snake_collisions(),
-            false,
+        assert!(
+            !simulator.check_snake_collisions(),
             "you didnt collide with an enemy"
         );
         assert_eq!(
@@ -577,7 +674,7 @@ mod tests {
 
         let mut simulator = Simulator::from_gamestate(&mut game_state);
 
-        assert_eq!(simulator.check_out_of_bounds(), false);
+        assert!(!simulator.check_out_of_bounds());
 
         snake.body = vec![Coord::new(-1, 0), Coord::new(0, 0), Coord::new(0, 0)];
         snake.head = Coord::new(-1, 0);
@@ -585,7 +682,7 @@ mod tests {
         game_state.board.snakes = vec![snake.clone()];
         simulator.game_state = game_state.clone();
 
-        assert_eq!(simulator.check_out_of_bounds(), true);
+        assert!(simulator.check_out_of_bounds());
 
         snake.body = vec![Coord::new(5, 11), Coord::new(0, 0), Coord::new(0, 0)];
         snake.head = Coord::new(5, 11);
@@ -593,7 +690,7 @@ mod tests {
         game_state.board.snakes = vec![snake.clone()];
         simulator.game_state = game_state.clone();
 
-        assert_eq!(simulator.check_out_of_bounds(), true);
+        assert!(simulator.check_out_of_bounds());
     }
 
     #[test]
@@ -632,7 +729,14 @@ mod tests {
             "(you) Body does not have the right length"
         );
         assert_eq!(
-            simulator.game_state.board.snakes.get(0).unwrap().body.len(),
+            simulator
+                .game_state
+                .board
+                .snakes
+                .first()
+                .unwrap()
+                .body
+                .len(),
             4,
             "Body does not have the right length"
         );
@@ -641,7 +745,7 @@ mod tests {
             "(you) Snake property length is not correct"
         );
         assert_eq!(
-            simulator.game_state.board.snakes.get(0).unwrap().length,
+            simulator.game_state.board.snakes.first().unwrap().length,
             4,
             "Snake property 'length' is not correct"
         );
@@ -652,7 +756,7 @@ mod tests {
             "(you) Health is not correct"
         );
         assert_eq!(
-            simulator.game_state.board.snakes.get(0).unwrap().health,
+            simulator.game_state.board.snakes.first().unwrap().health,
             100,
             "Health is not correct"
         );
