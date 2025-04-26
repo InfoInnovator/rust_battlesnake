@@ -2,3 +2,4 @@
 *.dot
 *.pdf
 exported_game_state.json
+game_state.json
