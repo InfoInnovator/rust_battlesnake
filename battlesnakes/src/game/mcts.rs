@@ -101,10 +101,6 @@ impl Mcts {
             // expand the child with all reasonable moves for 'you' and a single reasonable move for every other snake
             let possible_moves = sim.get_reasonable_moves(&self.game_state.you.id);
 
-            if self.current_iteration == 0 {
-                println!("Possible moves: {possible_moves:?}");
-            }
-
             for m in &possible_moves {
                 let mut next_moves = HashMap::new();
                 for snake in &sim.game_state.board.snakes.clone() {
