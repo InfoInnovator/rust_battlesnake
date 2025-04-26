@@ -74,8 +74,24 @@ fn export_game_state(turn: String) {
         next_valid_moves: vec![],
     };
 
+    // find latest filename in runa/scenarios and increment the number
+    let paths = std::fs::read_dir("runa/scenarios").expect("Unable to read directory");
+    let last_file = paths.last().expect("No files found").unwrap();
+    let last_file_name = last_file.file_name().into_string().unwrap();
+    let new_file_index = last_file_name
+        .split('_')
+        .last()
+        .unwrap()
+        .split('.')
+        .next()
+        .unwrap()
+        .parse::<i32>()
+        .unwrap()
+        + 1;
+
     // write the game state to a file
-    let file = std::fs::File::create("exported_game_state.json").expect("Unable to create file");
+    let file = std::fs::File::create(format!("runa/scenarios/turn_{new_file_index}.json"))
+        .expect("Unable to create file");
     let mut writer = std::io::BufWriter::new(file);
     let json = serde_json::to_string(&eported_game_state).expect("Unable to serialize");
     writer
