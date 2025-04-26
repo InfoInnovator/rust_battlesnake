@@ -1,3 +1,4 @@
 /target
 *.dot
 *.pdf
+exported_game_state.json
