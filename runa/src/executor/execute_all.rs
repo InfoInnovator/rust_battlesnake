@@ -45,6 +45,8 @@ impl Executor {
             let mut exported_game_state =
                 serde_json::from_str::<ExportedGameState>(&scenario_str).unwrap();
 
+            exported_game_state.game_state.board.print();
+
             // replace "you" snake name with the snake name to be tested
             exported_game_state
                 .game_state
