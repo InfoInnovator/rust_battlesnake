@@ -1,7 +1,12 @@
 use std::{
+    collections::VecDeque,
+    io::Write,
     process::{Child, Command},
     time::Duration,
 };
+
+use battlesnakes::game::game_types::GameState;
+use runa::creator::simple_creator::ExportedGameState;
 
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
@@ -32,11 +37,50 @@ fn main() {
 
             export_graph_to_pdf(filename);
         }
+        "import" => {
+            let turn = if args.len() > 2 {
+                args[2].clone()
+            } else {
+                eprintln!("No turn provided");
+                std::process::exit(1);
+            };
+
+            export_game_state(turn);
+        }
         _ => {
             eprintln!("Unknown command: {}", args[1]);
             std::process::exit(1);
         }
     };
+}
+
+fn export_game_state(turn: String) {
+    // read content from file
+    let filename = "game_state.json";
+    let file = std::fs::File::open(filename).expect("Unable to open file");
+    let reader = std::io::BufReader::new(file);
+    let states: VecDeque<GameState> =
+        serde_json::from_reader(reader).expect("Unable to parse JSON");
+
+    // find the state for the given turn
+    let state = states
+        .iter()
+        .find(|state| state.turn == turn.parse::<i32>().unwrap())
+        .expect("Unable to find state for given turn");
+
+    let eported_game_state = ExportedGameState {
+        description: "".to_string(),
+        game_state: state.clone(),
+        next_valid_moves: vec![],
+    };
+
+    // write the game state to a file
+    let file = std::fs::File::create("exported_game_state.json").expect("Unable to create file");
+    let mut writer = std::io::BufWriter::new(file);
+    let json = serde_json::to_string(&eported_game_state).expect("Unable to serialize");
+    writer
+        .write_all(json.as_bytes())
+        .expect("Unable to write data");
 }
 
 fn export_graph_to_pdf(filename: String) {

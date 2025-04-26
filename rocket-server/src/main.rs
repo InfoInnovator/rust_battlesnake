@@ -13,7 +13,11 @@ use rocket::fairing::AdHoc;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{Config, State};
+use save_gamestate::SaveGameState;
 use serde_json::{Value, json};
+use std::sync::Mutex;
+
+mod save_gamestate;
 
 #[get("/")]
 fn handle_index() -> Json<Value> {
@@ -37,6 +41,7 @@ fn handle_start(_start_req: Json<GameState>) -> Status {
 fn handle_move(
     move_req: Json<GameState>,
     factories: &State<Vec<BoxedBattlesnakeFactory>>,
+    game_state: &State<Mutex<SaveGameState>>,
 ) -> Json<Value> {
     let (game, turn, board, you) = (
         &move_req.game,
@@ -51,6 +56,8 @@ fn handle_move(
         .handle_move(game, turn, board, you);
 
     info!("[{}] {}: {:?}", turn, you.name, next_move);
+
+    game_state.lock().unwrap().save_state(move_req.into_inner());
 
     Json(json!({"move": next_move.to_string()}))
 }
@@ -81,6 +88,8 @@ fn rocket() -> _ {
     rocket::build()
         .configure(config)
         .manage(add_all_factories())
+        .manage(Mutex::new(SaveGameState::new()))
+        // .manage(SaveGameState::new())
         .attach(AdHoc::on_response("Server ID Middleware", |_, res| {
             Box::pin(async move {
                 res.set_raw_header("Server", "battlesnake-rust");

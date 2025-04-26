@@ -1,0 +1,198 @@
+{
+    "description": "",
+    "game_state": {
+        "game": {
+            "id": "7866774a-bc52-4c61-9a9a-63b8922e60cf",
+            "ruleset": {
+                "name": "standard",
+                "version": "cli",
+                "settings": {
+                    "foodSpawnChance": 15,
+                    "hazardDamagePerTurn": 14,
+                    "hazardMap": "",
+                    "hazardMapAuthor": "",
+                    "minimumFood": 1,
+                    "royale": {
+                        "shrinkEveryNTurns": 25
+                    },
+                    "squad": {
+                        "allowBodyCollisions": false,
+                        "sharedElimination": false,
+                        "sharedHealth": false,
+                        "sharedLength": false
+                    }
+                }
+            },
+            "timeout": 500
+        },
+        "turn": 83,
+        "board": {
+            "height": 11,
+            "width": 11,
+            "food": [
+                {
+                    "x": 2,
+                    "y": 0
+                },
+                {
+                    "x": 2,
+                    "y": 3
+                },
+                {
+                    "x": 7,
+                    "y": 10
+                },
+                {
+                    "x": 4,
+                    "y": 10
+                },
+                {
+                    "x": 3,
+                    "y": 2
+                },
+                {
+                    "x": 6,
+                    "y": 2
+                },
+                {
+                    "x": 9,
+                    "y": 2
+                },
+                {
+                    "x": 5,
+                    "y": 5
+                }
+            ],
+            "snakes": [
+                {
+                    "id": "7f97c2cc-0dbd-455a-a1ec-696e8b7390e1",
+                    "name": "CarloConstrictor",
+                    "health": 95,
+                    "body": [
+                        {
+                            "x": 0,
+                            "y": 7
+                        },
+                        {
+                            "x": 1,
+                            "y": 7
+                        },
+                        {
+                            "x": 1,
+                            "y": 6
+                        },
+                        {
+                            "x": 2,
+                            "y": 6
+                        },
+                        {
+                            "x": 2,
+                            "y": 5
+                        },
+                        {
+                            "x": 2,
+                            "y": 4
+                        }
+                    ],
+                    "head": {
+                        "x": 0,
+                        "y": 7
+                    },
+                    "length": 6,
+                    "latency": "49",
+                    "shout": ""
+                },
+                {
+                    "id": "e93ee380-055a-403f-9404-b34f6393233e",
+                    "name": "Battlerat",
+                    "health": 94,
+                    "body": [
+                        {
+                            "x": 3,
+                            "y": 8
+                        },
+                        {
+                            "x": 4,
+                            "y": 8
+                        },
+                        {
+                            "x": 4,
+                            "y": 7
+                        },
+                        {
+                            "x": 3,
+                            "y": 7
+                        },
+                        {
+                            "x": 3,
+                            "y": 6
+                        },
+                        {
+                            "x": 4,
+                            "y": 6
+                        },
+                        {
+                            "x": 5,
+                            "y": 6
+                        },
+                        {
+                            "x": 6,
+                            "y": 6
+                        },
+                        {
+                            "x": 7,
+                            "y": 6
+                        }
+                    ],
+                    "head": {
+                        "x": 3,
+                        "y": 8
+                    },
+                    "length": 9,
+                    "latency": "24",
+                    "shout": ""
+                }
+            ],
+            "hazards": []
+        },
+        "you": {
+            "id": "7f97c2cc-0dbd-455a-a1ec-696e8b7390e1",
+            "name": "CarloConstrictor",
+            "health": 95,
+            "body": [
+                {
+                    "x": 0,
+                    "y": 7
+                },
+                {
+                    "x": 1,
+                    "y": 7
+                },
+                {
+                    "x": 1,
+                    "y": 6
+                },
+                {
+                    "x": 2,
+                    "y": 6
+                },
+                {
+                    "x": 2,
+                    "y": 5
+                },
+                {
+                    "x": 2,
+                    "y": 4
+                }
+            ],
+            "head": {
+                "x": 0,
+                "y": 7
+            },
+            "length": 6,
+            "latency": "0",
+            "shout": ""
+        }
+    },
+    "next_valid_moves": []
+}
