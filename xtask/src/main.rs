@@ -45,7 +45,7 @@ fn main() {
                 std::process::exit(1);
             };
 
-            export_game_state(turn);
+            import_game_state(turn);
         }
         _ => {
             eprintln!("Unknown command: {}", args[1]);
@@ -54,7 +54,7 @@ fn main() {
     };
 }
 
-fn export_game_state(turn: String) {
+fn import_game_state(turn: String) {
     // read content from file
     let filename = "game_state.json";
     let file = std::fs::File::open(filename).expect("Unable to open file");
