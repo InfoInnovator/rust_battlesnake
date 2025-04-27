@@ -1,6 +1,3 @@
 [alias]
 xtask = "run --package xtask --"
-solo = "run --package xtask -- solo"
-export = "run --package xtask -- export"
 server = "run --package rocket-server"
-import = "run --package xtask -- import"
