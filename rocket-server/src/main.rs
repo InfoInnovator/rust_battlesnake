@@ -89,7 +89,6 @@ fn rocket() -> _ {
         .configure(config)
         .manage(add_all_factories())
         .manage(Mutex::new(SaveGameState::new()))
-        // .manage(SaveGameState::new())
         .attach(AdHoc::on_response("Server ID Middleware", |_, res| {
             Box::pin(async move {
                 res.set_raw_header("Server", "battlesnake-rust");
