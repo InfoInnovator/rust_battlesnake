@@ -10,19 +10,6 @@ use executor::execute_all::Executor;
 mod creator;
 mod executor;
 
-/*
-TODO
-+ add legend for shortcuts
-+ add better layout
-
-+ visualize export
-+ visualize selected next_valid_moves
-+ read json scenarios from file to be used by the creator
-+ better error handling for sending requests
-
-+ implement tests respecting the given timeout from the game state
-*/
-
 /// R.U.N.A. - Real-time Unfolding of Navigational Actions
 fn main() {
     let cli = Cli::parse();
